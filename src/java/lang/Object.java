@@ -18,4 +18,19 @@ public class Object {
 
     @HotSpotIntrinsicCandidate
     public final native Class<?> getClass();
+
+    /** returns a hash code value for the object */
+    @HotSpotIntrinsicCandidate
+    public native int hashCode();
+
+    /** Indicates whether some other object is "equal to" this one. */
+    public boolean equals(Object obj) {
+        return (this == obj);
+    }
+
+    public String toString() {
+//        return getClass() TODO
+
+        return "";
+    }
 }

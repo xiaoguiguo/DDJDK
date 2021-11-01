@@ -1,13 +1,19 @@
 package java.lang;
 
+import jdk.internal.HotSpotIntrinsicCandidate;
 import jdk.internal.annotation.Stable;
 
 import java.io.ObjectStreamField;
 import java.io.Serializable;
+import java.lang.annotation.Native;
 
 public final class String implements Serializable, Comparable<String>, CharSequence {
 
     private static final long serialVersionUID = -8522897979510336244L;
+
+    @Native static final byte LATIN1 = 0;
+    @Native static final byte UTF16  = 1;
+
     /**
      * The value is used for character storage.
      * 被@Stable修饰的字段，是被vm信任的
@@ -40,10 +46,97 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         this.coder = "".coder;
     }
 
+    @HotSpotIntrinsicCandidate
+    public String(String original) {
+        this.value = original.value;
+        this.coder = original.coder;
+        this.hash = original.hash;
+    }
+
+    public String(char value[]) {
+        this(value, 0, value.length, null);
+    }
+
+    public String(char value[], int offset, int count) {
+        this(value, offset, count, rangeCheck(value, offset, count));
+    }
+
+    String(byte[] value, byte coder) {
+        this.value = value;
+        this.coder = coder;
+    }
+
     /**
      * 直接使用双引号声明出来的String对象会直接存储在常量池中。
      * 如果不是用双引号声明的String对象，可以使用String提供的intern方法。
      * intern 方法会从字符串常量池中查询当前字符串是否存在，若不存在就会将当前字符串放入常量池中
      */
     public native String intern();
+
+    public int length() {
+        return value.length >> coder();
+    }
+
+    /**
+     * 获取指定索引处的字符
+     */
+    public char charAt(int index) {
+        if (isLatin1()) {
+            return StringLatin1.charAt(value, index);
+        } else {
+            return StringUTF16.charAt(value, index);
+        }
+    }
+
+    public CharSequence subSequence(int beginIndex, int endIndex) {
+        return this.substring(beginIndex, endIndex);
+    }
+
+    private CharSequence substring(int beginIndex, int endIndex) {
+        int length = length();
+        checkBoundsBeginEnd(beginIndex, endIndex, length);
+        int subLen = endIndex - beginIndex;
+        if (beginIndex == 0 && endIndex == length) {
+            return this;
+        }
+        return isLatin1() ? StringLatin1.newString(value, beginIndex, subLen)
+                          : StringUTF16.newString(value, beginIndex, subLen);
+    }
+
+    public int compareTo(String o) {
+        return 0;
+    }
+
+    byte coder() {
+        return COMPACT_STRINGS ? coder : UTF16;
+    }
+
+    private boolean isLatin1() {
+        return COMPACT_STRINGS && coder == LATIN1;
+    }
+
+    static void checkIndex(int index, int length) {
+        if (index < 0 || index >= length) {
+            throw new StringIndexOutOfBoundsException("index " + index + ",length " + length);
+        }
+    }
+
+    private static Void rangeCheck(char[] value, int offset, int count) {
+        checkBoundsOffCount(offset, count, value.length);
+        return null;
+    }
+
+    static void checkBoundsOffCount(int offset, int count, int length) {
+        if (offset < 0 || count < 0 || offset > length - count) {
+            throw new StringIndexOutOfBoundsException(
+                    "offset " + offset + ", count " + count + ", length " + length);
+        }
+    }
+
+    static void checkBoundsBeginEnd(int begin, int end, int length) {
+        if (begin < 0 || begin > end || end > length) {
+            throw new StringIndexOutOfBoundsException(
+                    "begin " + begin + ", end " + end + ", length " + length);
+        }
+    }
 }
