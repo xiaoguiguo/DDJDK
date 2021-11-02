@@ -26,4 +26,8 @@ final class StringLatin1 {
     public static String newString(byte[] val, int index, int len) {
         return new String(Arrays.copyOfRange(val, index, index + len), LATIN1);
     }
+
+    public static char getChar(byte[] val, int index) {
+        return (char)(val[index] & 0xff);
+    }
 }

@@ -32,7 +32,7 @@ public final class Class<T> implements Serializable, GenericDeclaration, Type, A
      */
     private final ClassLoader classLoader;
 
-    static native Class<Void> getPrimitiveClass(String name);
+    static native Class<?> getPrimitiveClass(String name);
 
     private Class(ClassLoader loader, Class<?> arrayComponentType) {
         classLoader = loader;
@@ -52,4 +52,11 @@ public final class Class<T> implements Serializable, GenericDeclaration, Type, A
      */
     @HotSpotIntrinsicCandidate
     public native boolean isArray();
+
+    /**
+     * 判断是否是java基本类型
+     * 基本类型有：boolean、char、byte、short、int、long、float、double
+     */
+    @HotSpotIntrinsicCandidate
+    public native boolean isPrimitive();
 }

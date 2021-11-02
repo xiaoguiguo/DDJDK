@@ -18,4 +18,7 @@ public class SecurityManager {
             initialized = true;
         }
     }
+
+    public void checkPermission(ReflectPermission accessPermission) {
+    }
 }

@@ -63,8 +63,41 @@ public class ObjectStreamField implements Comparable<Object> {
         }
     }
 
+    private static String getPrimitiveSignature(Class<?> cl) {
+        if (cl == Integer.TYPE)
+            return "I";
+        else if (cl == Byte.TYPE)
+            return "B";
+        else if (cl == Long.TYPE)
+            return "J";
+        else if (cl == Float.TYPE)
+            return "F";
+        else if (cl == Double.TYPE)
+            return "D";
+        else if (cl == Short.TYPE)
+            return "S";
+        else if (cl == Character.TYPE)
+            return "C";
+        else if (cl == Boolean.TYPE)
+            return "Z";
+        else if (cl == Void.TYPE)
+            return "V";
+        else
+            throw new InternalError();
+    }
 
-    @Override
+    static String getClassSignature(Class<?> cl) {
+        if (cl.isPrimitive()) {
+            return getPrimitiveSignature(cl);
+        } else {
+            return appendClassSignature(new StringBuilder(), cl).toString();
+        }
+    }
+
+    public char getTypeCode() {
+        return getSignature().charAt(0);
+    }
+
     public int compareTo(Object obj) {
         ObjectStreamField other = (ObjectStreamField) obj;
         boolean isPrim = isPrimitive();
@@ -74,8 +107,30 @@ public class ObjectStreamField implements Comparable<Object> {
         return name.compareTo(other.name);
     }
 
+    /**
+     * 如果此字段具有基本类型，则返回 true。
+     * 基本类型有：boolean、char、byte、short、int、long、float、double
+     */
     private boolean isPrimitive() {
-        // TODO
-        return true;
+        char tcode = getTypeCode();
+        return ((tcode != 'L') && (tcode != '['));
+    }
+
+    /**
+     * 返回字段的 JVM 类型签名（类似于 getTypeString，除了原始字段也返回签名字符串）。
+     */
+    String getSignature() {
+        if (signature != null) {
+            return signature;
+        }
+        String sig = typeSignature;
+        /**
+         * 这种惰性计算是安全的，因为如果使用公共构造函数之一，则签名可以为空，
+         * 在这种情况下，类型始终初始化为我们希望签名表示的确切类型。
+         */
+        if (sig == null) {
+            typeSignature = sig = getClassSignature(type).intern();
+        }
+        return sig;
     }
 }
