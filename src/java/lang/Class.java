@@ -24,9 +24,20 @@ public final class Class<T> implements Serializable, GenericDeclaration, Type, A
 
     private final Class<?> componentType;
 
+    // set by VM
+    private transient Module module;
+
+    /**
+     * 由JVM初始化，而不是通过私有构造方法
+     */
+    private final ClassLoader classLoader;
+
     static native Class<Void> getPrimitiveClass(String name);
 
-//    private Class()
+    private Class(ClassLoader loader, Class<?> arrayComponentType) {
+        classLoader = loader;
+        componentType = arrayComponentType;
+    }
 
     public Class<?> getComponentType() {
         if (isArray()) {

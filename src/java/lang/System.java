@@ -16,7 +16,13 @@ public final class System {
         registerNatives();
     }
 
+    private static volatile SecurityManager security;
+
     private System() {}
+
+    public static SecurityManager getSecurityManager() {
+        return security;
+    }
 
     @HotSpotIntrinsicCandidate
     public static native void arraycopy(Object src, int srcPos, Object desc, int destPos, int length);

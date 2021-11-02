@@ -25,7 +25,7 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     /**
      * The identifier of the encoding used to encode the bytes in value.
      * 支持LATIN1/UTF16, LATIN1(ISO-8859-1)
-     * 字符串压缩 Compact String(java 9)
+     * 字符串压缩 Compact String(since java 9)
      * 无论何时我们创建一个所有字符都能用一个字节的 LATIN-1 编码来描述的字符串，都将在内部使用字节数组的形式存储，且每个字符都只占用一个字节。
      * 另一方面，如果字符串中任一字符需要多于 8 比特位来表示时，该字符串的所有字符都统统使用两个字节的 UTF-16 编码来描述。
      * 虚拟机参数 CompactStrings 默认是开启的，可通过：+XX:-CompactStrings 关闭
@@ -64,6 +64,24 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     String(byte[] value, byte coder) {
         this.value = value;
         this.coder = coder;
+    }
+
+    String(char[] value, int off, int len, Void sig) {
+        if (len == 0) {
+            this.value = "".value;
+            this.coder = "".coder;
+            return;
+        }
+        if (COMPACT_STRINGS) {
+            byte[] val = StringUTF16.compress(value, off, len);
+            if (val != null) {
+                this.value = val;
+                this.coder = LATIN1;
+                return;
+            }
+        }
+        this.coder = UTF16;
+        this.value = StringUTF16.toBytes(value, off, len);
     }
 
     /**
