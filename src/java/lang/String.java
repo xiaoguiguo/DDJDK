@@ -202,6 +202,9 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         return true;
     }
 
+    /**
+     * 用于检测两个字符串在一个区域内是否相等。
+     */
     public boolean regionMatches(boolean ignoreCase, int toffset, String other, int ooffset, int len) {
         if (!ignoreCase) {
             return regionMatches(toffset, other, ooffset, len);
@@ -214,11 +217,11 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         if (coder() == other.coder()) {
             return isLatin1()
                     ? StringLatin1.regionMatchesCI(tv, toffset, ov, ooffset, len)
-                    : StringUTF16.regisnMatchesCI(tv, toffset, ov, ooffset, len);
+                    : StringUTF16.regionMatchesCI(tv, toffset, ov, ooffset, len);
         }
         return isLatin1()
                 ? StringLatin1.regionMatchesCI_UTF16(tv, toffset, ov, ooffset, len)
-                : StringUTF16.regfionMatchesCI_Latin1(tv, toffset, ov, ooffset, len);
+                : StringUTF16.regionMatchesCI_Latin1(tv, toffset, ov, ooffset, len);
     }
 
 

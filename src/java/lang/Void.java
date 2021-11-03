@@ -12,7 +12,7 @@ public final class Void {
     /**
      * Class对象表示关键字 void 对应的伪类型
      */
-    public static final Class<Void> TYPE = Class.getPrimitiveClass("void");
+    public static final Class<Void> TYPE = (Class<Void>) Class.getPrimitiveClass("void");
 
     private Void() {}
 }

@@ -30,4 +30,9 @@ final class StringLatin1 {
     public static char getChar(byte[] val, int index) {
         return (char)(val[index] & 0xff);
     }
+
+    public static boolean regionMatchesCI(byte[] value, int toffset, byte [] other, int ooffset, int len) {
+        // TODO
+        return false;
+    }
 }
