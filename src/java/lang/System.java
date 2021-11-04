@@ -2,6 +2,8 @@ package java.lang;
 
 import jdk.internal.HotSpotIntrinsicCandidate;
 
+import java.io.PrintStream;
+
 /**
  * @className: System
  * @author: doudou
@@ -10,6 +12,8 @@ import jdk.internal.HotSpotIntrinsicCandidate;
  *      It cannot be instantiated.
  */
 public final class System {
+
+    public static final PrintStream err = null;
 
     private static native void registerNatives();
     static {
@@ -26,4 +30,8 @@ public final class System {
 
     @HotSpotIntrinsicCandidate
     public static native void arraycopy(Object src, int srcPos, Object desc, int destPos, int length);
+
+    public static void exit(int status) {
+        Runtime.getRuntime().exit(status);
+    }
 }

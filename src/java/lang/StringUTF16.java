@@ -95,4 +95,33 @@ final class StringUTF16 {
         String.checkBoundsOffCount(offset, count, length(val));
     }
 
+    public static boolean regionMatchesCI(byte[] tv, int toffset, byte[] ov, int ooffset, int len) {
+        // TODO
+        return false;
+    }
+
+    public static boolean regionMatchesCI_Latin1(byte[] tv, int toffset, byte[] ov, int ooffset, int len) {
+        // TODO
+        return false;
+    }
+
+    public static int indexOf(byte[] value, byte[] value1) {
+        // TODO
+        return 0;
+    }
+
+    public static int indexOfLatin1(byte[] value, byte[] value1) {
+        // TODO
+        return 0;
+    }
+
+    public static byte[] compress(char[] value, int off, int len) {
+        // TODO
+        return new byte[0];
+    }
+
+    public static byte[] toBytes(char[] value, int off, int len) {
+        // TODO
+        return new byte[0];
+    }
 }

@@ -225,4 +225,15 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     }
 
 
+    public int indexOf(String str) {
+        if (coder() == str.coder()) {
+            return  isLatin1()
+                    ? StringLatin1.indexOf(value, str.value)
+                    : StringUTF16.indexOf(value, str.value);
+        }
+        if (coder() == LATIN1) {
+            return -1;
+        }
+        return StringUTF16.indexOfLatin1(value, str.value);
+    }
 }

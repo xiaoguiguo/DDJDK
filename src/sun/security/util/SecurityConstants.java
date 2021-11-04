@@ -49,7 +49,7 @@ public final class SecurityConstants {
      */
     public static final AllPermission ALL_PERMISSION = new AllPermission();
 
-    public static
+    public static final NetPermission SPECIFY_HANDLER_PERMISSION = new NetPermission("setProxySelector");
 
     public static final ReflectPermission ACCESS_PERMISSION = new ReflectPermission("suppressAccessChecks");
 

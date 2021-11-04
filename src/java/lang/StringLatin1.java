@@ -35,4 +35,14 @@ final class StringLatin1 {
         // TODO
         return false;
     }
+
+    public static boolean regionMatchesCI_UTF16(byte[] tv, int toffset, byte[] ov, int ooffset, int len) {
+        // TODO
+        return false;
+    }
+
+    public static int indexOf(byte[] value, byte[] value1) {
+        // TODO
+        return 0;
+    }
 }
