@@ -2,6 +2,7 @@ package java.security;
 
 import java.io.Serializable;
 import java.util.Enumeration;
+import java.util.NoSuchElementException;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
@@ -44,4 +45,20 @@ public abstract class PermissionCollection implements Serializable {
         return readOnly;
     }
 
+    public String toString() {
+        Enumeration<Permission> enum_ = elements();
+        StringBuilder sb = new StringBuilder();
+        sb.append(super.toString()+" (\n");
+        while (enum_.hasMoreElements()) {
+            try {
+                sb.append(" ");
+                sb.append(enum_.nextElement().toString());
+                sb.append("\n");
+            } catch (NoSuchElementException e){
+                // ignore
+            }
+        }
+        sb.append(")\n");
+        return sb.toString();
+    }
 }

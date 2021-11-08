@@ -15,5 +15,8 @@ public final class ReflectPermission extends BasicPermission {
         super(name);
     }
 
+    public ReflectPermission(String name, String actions) {
+        super(name, actions);
+    }
 
 }
