@@ -1,6 +1,29 @@
-package java.lang;
+/*
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
 
-import jdk.internal.HotSpotIntrinsicCandidate;
+package java.lang;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -9,31 +32,14 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import jdk.internal.HotSpotIntrinsicCandidate;
+import jdk.internal.vm.annotation.ForceInline;
+import jdk.internal.vm.annotation.DontInline;
 
-import static java.lang.String.*;
+import static java.lang.String.UTF16;
+import static java.lang.String.LATIN1;
 
-/**
- * @className: StringUTF16
- * @author: doudou
- * @datetime: 2021/11/1
- * @description: 双字节 字符串
- */
 final class StringUTF16 {
-
-    private static native boolean isBigEndian();
-
-    static final int HI_BYTE_SHIFT;
-    static final int LO_BYTE_SHIFT;
-    static {
-        if (isBigEndian()) {
-            HI_BYTE_SHIFT = 8;
-            LO_BYTE_SHIFT = 0;
-        } else {
-            HI_BYTE_SHIFT = 0;
-            LO_BYTE_SHIFT = 8;
-        }
-    }
-    static final int MAX_LENGTH = Integer.MAX_VALUE >> 1;
 
     public static byte[] newBytesFor(int len) {
         if (len < 0) {
@@ -41,7 +47,7 @@ final class StringUTF16 {
         }
         if (len > MAX_LENGTH) {
             throw new OutOfMemoryError("UTF16 String size is " + len +
-                    ", should be less than " + MAX_LENGTH);
+                                       ", should be less than " + MAX_LENGTH);
         }
         return new byte[len << 1];
     }
@@ -55,22 +61,13 @@ final class StringUTF16 {
         val[index]   = (byte)(c >> LO_BYTE_SHIFT);
     }
 
-    /**
-     * UTF16编码的字符char转化为byte时将char的低8位和高8位分别拆开来了，
-     * 依次按照低位byte在前高位byte在后的顺序进行存放。
-     * 所以返回的char[]长度是byte[]的一半。
-     *
-     * getChar()方法通过一个下标index访问它的2倍与2倍+1，也就是一个char的低位与高位。
-     * 低位与高位需要&0xff保持二进制值不变，高位右移指定高位数，最后将高低位按位或"|"组合成一个完整的char。
-     *
-     * 对于高低位的静态代码块，是根据isBigEndian()方法判断高位与低位哪个在前哪个在后。
-     */
     @HotSpotIntrinsicCandidate
+    // intrinsic performs no bounds checks
     static char getChar(byte[] val, int index) {
         assert index >= 0 && index < length(val) : "Trusted caller missed bounds check";
         index <<= 1;
-        return (char)(((val[index++] & 0xff) << HI_BYTE_SHIFT)
-                    | ((val[index]  & 0xff) << LO_BYTE_SHIFT));
+        return (char)(((val[index++] & 0xff) << HI_BYTE_SHIFT) |
+                      ((val[index]   & 0xff) << LO_BYTE_SHIFT));
     }
 
     public static int length(byte[] value) {
@@ -89,14 +86,14 @@ final class StringUTF16 {
             }
             char c2 = getChar(value, index);
             if (Character.isLowSurrogate(c2)) {
-                return Character.toCodePoint(c1, c2);
+               return Character.toCodePoint(c1, c2);
             }
         }
         return c1;
     }
 
     public static int codePointAt(byte[] value, int index, int end) {
-        return codePointAt(value, index, end, false /* unchecked */);
+       return codePointAt(value, index, end, false /* unchecked */);
     }
 
     private static int codePointBefore(byte[] value, int index, boolean checked) {
@@ -112,7 +109,7 @@ final class StringUTF16 {
             }
             char c1 = getChar(value, index);
             if (Character.isHighSurrogate(c1)) {
-                return Character.toCodePoint(c1, c2);
+               return Character.toCodePoint(c1, c2);
             }
         }
         return c2;
@@ -131,7 +128,7 @@ final class StringUTF16 {
         }
         for (; i < endIndex - 1; ) {
             if (Character.isHighSurrogate(getChar(value, i++)) &&
-                    Character.isLowSurrogate(getChar(value, i))) {
+                Character.isLowSurrogate(getChar(value, i))) {
                 count--;
                 i++;
             }
@@ -215,15 +212,11 @@ final class StringUTF16 {
         int n = len;
         for (int i = index; i < end; i++) {
             int cp = val[i];
-            if (Character.isBmpCodePoint(cp)) {
+            if (Character.isBmpCodePoint(cp))
                 continue;
-            }
-            else if (Character.isValidCodePoint(cp)) {
+            else if (Character.isValidCodePoint(cp))
                 n++;
-            }
-            else {
-                throw new IllegalArgumentException(Integer.toString(cp));
-            }
+            else throw new IllegalArgumentException(Integer.toString(cp));
         }
         // Pass 2: Allocate and fill in <high, low> pair
         byte[] buf = newBytesFor(n);
@@ -518,7 +511,7 @@ final class StringUTF16 {
 
         checkIndex(i, src);
 
-        startSearchForLastChar:
+    startSearchForLastChar:
         while (true) {
             while (i >= min && getChar(src, i) != strLastChar) {
                 i--;
@@ -589,17 +582,17 @@ final class StringUTF16 {
                 char c = getChar(value, i);
                 putChar(buf, i, c == oldChar ? newChar : c);
                 i++;
-            }
-            // Check if we should try to compress to latin1
-            if (String.COMPACT_STRINGS &&
-                    !StringLatin1.canEncode(oldChar) &&
-                    StringLatin1.canEncode(newChar)) {
-                byte[] val = compress(buf, 0, len);
-                if (val != null) {
-                    return new String(val, LATIN1);
-                }
-            }
-            return new String(buf, UTF16);
+           }
+           // Check if we should try to compress to latin1
+           if (String.COMPACT_STRINGS &&
+               !StringLatin1.canEncode(oldChar) &&
+               StringLatin1.canEncode(newChar)) {
+               byte[] val = compress(buf, 0, len);
+               if (val != null) {
+                   return new String(val, LATIN1);
+               }
+           }
+           return new String(buf, UTF16);
         }
         return null;
     }
@@ -661,12 +654,11 @@ final class StringUTF16 {
                 break;
             }
         }
-        if (first == len) {
+        if (first == len)
             return str;
-        }
         byte[] result = new byte[value.length];
         System.arraycopy(value, 0, result, 0, first << 1);  // Just copy the first few
-        // lowerCase characters.
+                                                            // lowerCase characters.
         String lang = locale.getLanguage();
         if (lang == "tr" || lang == "az" || lang == "lt") {
             return toLowerCaseEx(str, value, result, first, locale, true);
@@ -678,7 +670,7 @@ final class StringUTF16 {
         for (int i = first; i < len; i++) {
             int cp = (int)getChar(value, i);
             if (cp == '\u03A3' ||                       // GREEK CAPITAL LETTER SIGMA
-                    Character.isSurrogate((char)cp)) {
+                Character.isSurrogate((char)cp)) {
                 return toLowerCaseEx(str, value, result, i, locale, false);
             }
             if (cp == '\u0130') {                       // LATIN CAPITAL LETTER I WITH DOT ABOVE
@@ -716,8 +708,8 @@ final class StringUTF16 {
                 srcCount = Character.charCount(srcChar);
             }
             if (localeDependent ||
-                    srcChar == '\u03A3' ||  // GREEK CAPITAL LETTER SIGMA
-                    srcChar == '\u0130') {  // LATIN CAPITAL LETTER I WITH DOT ABOVE
+                srcChar == '\u03A3' ||  // GREEK CAPITAL LETTER SIGMA
+                srcChar == '\u0130') {  // LATIN CAPITAL LETTER I WITH DOT ABOVE
                 lowerChar = ConditionalSpecialCasing.toLowerCaseEx(str, i, locale);
             } else {
                 lowerChar = Character.toLowerCase(srcChar);
@@ -771,7 +763,7 @@ final class StringUTF16 {
         }
         byte[] result = new byte[value.length];
         System.arraycopy(value, 0, result, 0, first << 1); // Just copy the first few
-        // upperCase characters.
+                                                           // upperCase characters.
         String lang = locale.getLanguage();
         if (lang == "tr" || lang == "az" || lang == "lt") {
             return toUpperCaseEx(str, value, result, first, locale, true);
@@ -828,7 +820,7 @@ final class StringUTF16 {
                 if (upperChar == Character.ERROR) {
                     if (localeDependent) {
                         upperCharArray =
-                                ConditionalSpecialCasing.toUpperCaseCharArray(str, i, locale);
+                            ConditionalSpecialCasing.toUpperCaseCharArray(str, i, locale);
                     } else {
                         upperCharArray = Character.toUpperCaseCharArray(srcChar);
                     }
@@ -863,8 +855,8 @@ final class StringUTF16 {
             len--;
         }
         return ((st > 0) || (len < length )) ?
-                new String(java.util.Arrays.copyOfRange(value, st << 1, len << 1), UTF16) :
-                null;
+            new String(Arrays.copyOfRange(value, st << 1, len << 1), UTF16) :
+            null;
     }
 
 
@@ -1030,7 +1022,7 @@ final class StringUTF16 {
             }
         }
         int last = index + len;
-        return new String(java.util.Arrays.copyOfRange(val, index << 1, last << 1), UTF16);
+        return new String(Arrays.copyOfRange(val, index << 1, last << 1), UTF16);
     }
 
     public static void fillNull(byte[] val, int index, int end) {
@@ -1052,15 +1044,15 @@ final class StringUTF16 {
             this.index = origin;
             this.fence = fence;
             this.cs = acs | Spliterator.ORDERED | Spliterator.SIZED
-                    | Spliterator.SUBSIZED;
+                      | Spliterator.SUBSIZED;
         }
 
         @Override
         public OfInt trySplit() {
             int lo = index, mid = (lo + fence) >>> 1;
             return (lo >= mid)
-                    ? null
-                    : new CharsSpliterator(array, lo, index = mid, cs);
+                   ? null
+                   : new CharsSpliterator(array, lo, index = mid, cs);
         }
 
         @Override
@@ -1069,7 +1061,7 @@ final class StringUTF16 {
             if (action == null)
                 throw new NullPointerException();
             if (((a = array).length >> 1) >= (hi = fence) &&
-                    (i = index) >= 0 && i < (index = hi)) {
+                (i = index) >= 0 && i < (index = hi)) {
                 do {
                     action.accept(charAt(a, i));
                 } while (++i < hi);
@@ -1078,9 +1070,8 @@ final class StringUTF16 {
 
         @Override
         public boolean tryAdvance(IntConsumer action) {
-            if (action == null) {
+            if (action == null)
                 throw new NullPointerException();
-            }
             int i = index;
             if (i >= 0 && i < fence) {
                 action.accept(charAt(array, i));
@@ -1125,7 +1116,7 @@ final class StringUTF16 {
             int midOneLess;
             // If the mid-point intersects a surrogate pair
             if (Character.isLowSurrogate(charAt(array, mid)) &&
-                    Character.isHighSurrogate(charAt(array, midOneLess = (mid -1)))) {
+                Character.isHighSurrogate(charAt(array, midOneLess = (mid -1)))) {
                 // If there is only one pair it cannot be split
                 if (lo >= midOneLess)
                     return null;
@@ -1141,7 +1132,7 @@ final class StringUTF16 {
             if (action == null)
                 throw new NullPointerException();
             if (((a = array).length >> 1) >= (hi = fence) &&
-                    (i = index) >= 0 && i < (index = hi)) {
+                (i = index) >= 0 && i < (index = hi)) {
                 do {
                     i = advance(a, i, hi, action);
                 } while (i < hi);
@@ -1150,9 +1141,8 @@ final class StringUTF16 {
 
         @Override
         public boolean tryAdvance(IntConsumer action) {
-            if (action == null) {
+            if (action == null)
                 throw new NullPointerException();
-            }
             if (index >= 0 && index < fence) {
                 index = advance(array, index, fence, action);
                 return true;
@@ -1289,7 +1279,7 @@ final class StringUTF16 {
             putChar(val, j, ck);
             putChar(val, k, cj);
             if (Character.isSurrogate(cj) ||
-                    Character.isSurrogate(ck)) {
+                Character.isSurrogate(ck)) {
                 hasSurrogates = true;
             }
         }
@@ -1335,7 +1325,7 @@ final class StringUTF16 {
 
         checkIndex(i, src);
 
-        startSearchForLastChar:
+    startSearchForLastChar:
         while (true) {
             while (i >= min && getChar(src, i) != strLastChar) {
                 i--;
@@ -1355,6 +1345,24 @@ final class StringUTF16 {
             return start + 1;
         }
     }
+
+    ////////////////////////////////////////////////////////////////
+
+    private static native boolean isBigEndian();
+
+    static final int HI_BYTE_SHIFT;
+    static final int LO_BYTE_SHIFT;
+    static {
+        if (isBigEndian()) {
+            HI_BYTE_SHIFT = 8;
+            LO_BYTE_SHIFT = 0;
+        } else {
+            HI_BYTE_SHIFT = 0;
+            LO_BYTE_SHIFT = 8;
+        }
+    }
+
+    static final int MAX_LENGTH = Integer.MAX_VALUE >> 1;
 
     // Used by trusted callers.  Assumes all necessary bounds checks have
     // been done by the caller.

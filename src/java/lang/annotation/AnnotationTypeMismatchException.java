@@ -66,7 +66,7 @@ public class AnnotationTypeMismatchException extends RuntimeException {
      */
     public AnnotationTypeMismatchException(Method element, String foundType) {
         super("Incorrectly typed data found for annotation element " + element
-                + " (Found data of type " + foundType + ")");
+              + " (Found data of type " + foundType + ")");
         this.element = element;
         this.foundType = foundType;
     }

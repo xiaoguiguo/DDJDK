@@ -63,7 +63,7 @@ import jdk.internal.HotSpotIntrinsicCandidate;
  *
  * <p>Instances of {@code StringBuilder} are not safe for
  * use by multiple threads. If such synchronization is required then it is
- * recommended that {@link java.lang.StringBuffer} be used.
+ * recommended that {@link StringBuffer} be used.
  *
  * <p>Unless otherwise noted, passing a {@code null} argument to a constructor
  * or method in this class will cause a {@link NullPointerException} to be
@@ -78,13 +78,13 @@ import jdk.internal.HotSpotIntrinsicCandidate;
  * {@link java.util.SortedSet SortedSet} for more information.
  *
  * @author      Michael McCloskey
- * @see         java.lang.StringBuffer
- * @see         java.lang.String
+ * @see         StringBuffer
+ * @see         String
  * @since       1.5
  */
 public final class StringBuilder
-        extends AbstractStringBuilder
-        implements java.io.Serializable, Comparable<StringBuilder>, CharSequence
+    extends AbstractStringBuilder
+    implements java.io.Serializable, Comparable<StringBuilder>, CharSequence
 {
 
     /** use serialVersionUID for interoperability */
@@ -141,8 +141,8 @@ public final class StringBuilder
     /**
      * Compares two {@code StringBuilder} instances lexicographically. This method
      * follows the same rules for lexicographical comparison as defined in the
-     * {@linkplain java.lang.CharSequence#compare(java.lang.CharSequence,
-     * java.lang.CharSequence)  CharSequence.compare(this, another)} method.
+     * {@linkplain CharSequence#compare(CharSequence,
+     * CharSequence)  CharSequence.compare(this, another)} method.
      *
      * <p>
      * For finer-grained, locale-sensitive String comparison, refer to
@@ -319,8 +319,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder insert(int offset, Object obj) {
-        super.insert(offset, obj);
-        return this;
+            super.insert(offset, obj);
+            return this;
     }
 
     /**
@@ -346,8 +346,8 @@ public final class StringBuilder
      */
     @Override
     public StringBuilder insert(int dstOffset, CharSequence s) {
-        super.insert(dstOffset, s);
-        return this;
+            super.insert(dstOffset, s);
+            return this;
     }
 
     /**
@@ -446,7 +446,7 @@ public final class StringBuilder
     public String toString() {
         // Create a copy, don't share the array
         return isLatin1() ? StringLatin1.newString(value, 0, count)
-                : StringUTF16.newString(value, 0, count);
+                          : StringUTF16.newString(value, 0, count);
     }
 
     /**
@@ -461,7 +461,7 @@ public final class StringBuilder
      *             case extra characters are ignored.
      */
     private void writeObject(java.io.ObjectOutputStream s)
-            throws java.io.IOException {
+        throws java.io.IOException {
         s.defaultWriteObject();
         s.writeInt(count);
         char[] val = new char[capacity()];
@@ -478,7 +478,7 @@ public final class StringBuilder
      * a stream.
      */
     private void readObject(java.io.ObjectInputStream s)
-            throws java.io.IOException, ClassNotFoundException {
+        throws java.io.IOException, ClassNotFoundException {
         s.defaultReadObject();
         count = s.readInt();
         char[] val = (char[]) s.readObject();

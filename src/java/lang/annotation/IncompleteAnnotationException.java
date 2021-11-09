@@ -56,7 +56,7 @@ public class IncompleteAnnotationException extends RuntimeException {
             Class<? extends Annotation> annotationType,
             String elementName) {
         super(annotationType.getName() + " missing element " +
-                elementName.toString());
+              elementName.toString());
 
         this.annotationType = annotationType;
         this.elementName = elementName;

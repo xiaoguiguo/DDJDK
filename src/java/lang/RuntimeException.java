@@ -1,45 +1,118 @@
+/*
+ * Copyright (c) 1995, 2011, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package java.lang;
 
 /**
- * RuntimeException is the superclass of those exceptions that can be thrown
- * during the normal operation of the Java Virtual Machine.
- * 运行时异常就是在应用程序运行期间抛出的异常。
+ * {@code RuntimeException} is the superclass of those
+ * exceptions that can be thrown during the normal operation of the
+ * Java Virtual Machine.
+ *
+ * <p>{@code RuntimeException} and its subclasses are <em>unchecked
+ * exceptions</em>.  Unchecked exceptions do <em>not</em> need to be
+ * declared in a method or constructor's {@code throws} clause if they
+ * can be thrown by the execution of the method or constructor and
+ * propagate outside the method or constructor boundary.
+ *
+ * @author  Frank Yellin
+ * @jls 11.2 Compile-Time Checking of Exceptions
+ * @since   1.0
  */
 public class RuntimeException extends Exception {
-    private static final long serialVersionUID = -8988075809376521002L;
+    static final long serialVersionUID = -7034897190745766939L;
 
+    /** Constructs a new runtime exception with {@code null} as its
+     * detail message.  The cause is not initialized, and may subsequently be
+     * initialized by a call to {@link #initCause}.
+     */
     public RuntimeException() {
         super();
     }
 
+    /** Constructs a new runtime exception with the specified detail message.
+     * The cause is not initialized, and may subsequently be initialized by a
+     * call to {@link #initCause}.
+     *
+     * @param   message   the detail message. The detail message is saved for
+     *          later retrieval by the {@link #getMessage()} method.
+     */
     public RuntimeException(String message) {
         super(message);
     }
 
+    /**
+     * Constructs a new runtime exception with the specified detail message and
+     * cause.  <p>Note that the detail message associated with
+     * {@code cause} is <i>not</i> automatically incorporated in
+     * this runtime exception's detail message.
+     *
+     * @param  message the detail message (which is saved for later retrieval
+     *         by the {@link #getMessage()} method).
+     * @param  cause the cause (which is saved for later retrieval by the
+     *         {@link #getCause()} method).  (A {@code null} value is
+     *         permitted, and indicates that the cause is nonexistent or
+     *         unknown.)
+     * @since  1.4
+     */
     public RuntimeException(String message, Throwable cause) {
         super(message, cause);
     }
 
+    /** Constructs a new runtime exception with the specified cause and a
+     * detail message of {@code (cause==null ? null : cause.toString())}
+     * (which typically contains the class and detail message of
+     * {@code cause}).  This constructor is useful for runtime exceptions
+     * that are little more than wrappers for other throwables.
+     *
+     * @param  cause the cause (which is saved for later retrieval by the
+     *         {@link #getCause()} method).  (A {@code null} value is
+     *         permitted, and indicates that the cause is nonexistent or
+     *         unknown.)
+     * @since  1.4
+     */
     public RuntimeException(Throwable cause) {
         super(cause);
     }
 
     /**
-     * enableSuppression – 是否启用抑制
-     * writableStackTrace – 堆栈跟踪是否应该是可写的
+     * Constructs a new runtime exception with the specified detail
+     * message, cause, suppression enabled or disabled, and writable
+     * stack trace enabled or disabled.
      *
-     * 构造具有指定详细消息的新throwable，原因是，启用或禁用了suppression ，并启用或禁用了可写堆栈跟踪。
-     * 如果禁用抑制， 则此对象的getSuppressed()将返回零长度数组，并且调用addSuppressed(java.lang.Throwable) ，
-     * 否则将对抑制列表附加异常将不起作用。 如果写的堆栈跟踪是假的，这个构造不会叫fillInStackTrace() ，
-     * 一个null将被写入到stackTrace领域，后续调用fillInStackTrace和setStackTrace(StackTraceElement[])不会设置堆栈跟踪。
-     * 如果可写堆栈跟踪为false，则getStackTrace()将返回零长度数组。
+     * @param  message the detail message.
+     * @param cause the cause.  (A {@code null} value is permitted,
+     * and indicates that the cause is nonexistent or unknown.)
+     * @param enableSuppression whether or not suppression is enabled
+     *                          or disabled
+     * @param writableStackTrace whether or not the stack trace should
+     *                           be writable
      *
-     * 请注意， Throwable的其他构造Throwable将抑制视为已启用且堆栈跟踪为可写。
-     * Throwable子类应记录禁用抑制的任何条件以及堆栈跟踪不可写的文档条件。
-     * 禁用抑制仅应在存在特殊要求的特殊情况下发生，例如虚拟机在低内存情况下重用异常对象。
-     * 重复捕获和重新生成给定异常对象的情况，例如在两个子系统之间实现控制流，是另一种情况，其中不可变的throwable对象是合适的。
+     * @since 1.7
      */
-    protected RuntimeException(String message, Throwable cause, boolean enableSuppression,
+    protected RuntimeException(String message, Throwable cause,
+                               boolean enableSuppression,
                                boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }

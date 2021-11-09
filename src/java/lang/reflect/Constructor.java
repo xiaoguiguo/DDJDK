@@ -52,10 +52,10 @@ import java.util.StringJoiner;
  * @param <T> the class in which the constructor is declared
  *
  * @see Member
- * @see java.lang.Class
- * @see java.lang.Class#getConstructors()
- * @see java.lang.Class#getConstructor(Class[])
- * @see java.lang.Class#getDeclaredConstructors()
+ * @see Class
+ * @see Class#getConstructors()
+ * @see Class#getConstructor(Class[])
+ * @see Class#getDeclaredConstructors()
  *
  * @author      Kenneth Russell
  * @author      Nakul Saraiya
@@ -88,8 +88,8 @@ public final class Constructor<T> extends Executable {
         if (genericInfo == null) {
             // create and cache generic info repository
             genericInfo =
-                    ConstructorRepository.make(getSignature(),
-                            getFactory());
+                ConstructorRepository.make(getSignature(),
+                                           getFactory());
         }
         return genericInfo; //return cached repository
     }
@@ -148,11 +148,11 @@ public final class Constructor<T> extends Executable {
             throw new IllegalArgumentException("Can not copy a non-root Constructor");
 
         Constructor<T> res = new Constructor<>(clazz,
-                parameterTypes,
-                exceptionTypes, modifiers, slot,
-                signature,
-                annotations,
-                parameterAnnotations);
+                                               parameterTypes,
+                                               exceptionTypes, modifiers, slot,
+                                               signature,
+                                               annotations,
+                                               parameterAnnotations);
         res.root = this;
         // Might as well eagerly propagate this if already present
         res.constructorAccessor = constructorAccessor;
@@ -190,7 +190,7 @@ public final class Constructor<T> extends Executable {
         if (clazz == Class.class) {
             // can we change this to InaccessibleObjectException?
             throw new SecurityException("Cannot make a java.lang.Class"
-                    + " constructor accessible");
+                                        + " constructor accessible");
         }
     }
 
@@ -238,10 +238,10 @@ public final class Constructor<T> extends Executable {
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public TypeVariable<Constructor<T>>[] getTypeParameters() {
-        if (getSignature() != null) {
-            return (TypeVariable<Constructor<T>>[])getGenericInfo().getTypeParameters();
-        } else
-            return (TypeVariable<Constructor<T>>[])new TypeVariable[0];
+      if (getSignature() != null) {
+        return (TypeVariable<Constructor<T>>[])getGenericInfo().getTypeParameters();
+      } else
+          return (TypeVariable<Constructor<T>>[])new TypeVariable[0];
     }
 
 
@@ -353,9 +353,9 @@ public final class Constructor<T> extends Executable {
      */
     public String toString() {
         return sharedToString(Modifier.constructorModifiers(),
-                false,
-                parameterTypes,
-                exceptionTypes);
+                              false,
+                              parameterTypes,
+                              exceptionTypes);
     }
 
     @Override
@@ -448,7 +448,7 @@ public final class Constructor<T> extends Executable {
      * @param initargs array of objects to be passed as arguments to
      * the constructor call; values of primitive types are wrapped in
      * a wrapper object of the appropriate type (e.g. a {@code float}
-     * in a {@link java.lang.Float Float})
+     * in a {@link Float Float})
      *
      * @return a new object created by calling the constructor
      * this object represents
@@ -473,8 +473,8 @@ public final class Constructor<T> extends Executable {
     @CallerSensitive
     @ForceInline // to ensure Reflection.getCallerClass optimization
     public T newInstance(Object ... initargs)
-            throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException
+        throws InstantiationException, IllegalAccessException,
+               IllegalArgumentException, InvocationTargetException
     {
         if (!override) {
             Class<?> caller = Reflection.getCallerClass();
@@ -594,17 +594,17 @@ public final class Constructor<T> extends Executable {
     boolean handleParameterNumberMismatch(int resultLength, int numParameters) {
         Class<?> declaringClass = getDeclaringClass();
         if (declaringClass.isEnum() ||
-                declaringClass.isAnonymousClass() ||
-                declaringClass.isLocalClass() )
+            declaringClass.isAnonymousClass() ||
+            declaringClass.isLocalClass() )
             return false; // Can't do reliable parameter counting
         else {
             if (declaringClass.isMemberClass() &&
-                    ((declaringClass.getModifiers() & Modifier.STATIC) == 0)  &&
-                    resultLength + 1 == numParameters) {
+                ((declaringClass.getModifiers() & Modifier.STATIC) == 0)  &&
+                resultLength + 1 == numParameters) {
                 return true;
             } else {
                 throw new AnnotationFormatError(
-                        "Parameter annotations don't match number of parameters");
+                          "Parameter annotations don't match number of parameters");
             }
         }
     }
@@ -647,7 +647,7 @@ public final class Constructor<T> extends Executable {
         // A Constructor for an inner class
         return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
                 SharedSecrets.getJavaLangAccess().
-                        getConstantPool(thisDeclClass),
+                    getConstantPool(thisDeclClass),
                 this,
                 thisDeclClass,
                 enclosingClass,

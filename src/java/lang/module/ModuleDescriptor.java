@@ -61,9 +61,9 @@ import jdk.internal.module.ModuleInfo;
  * <p> A module descriptor describes a named module and defines methods to
  * obtain each of its components. The module descriptor for a named module
  * in the Java virtual machine is obtained by invoking the {@link
- * java.lang.Module Module}'s {@link java.lang.Module#getDescriptor
+ * Module Module}'s {@link Module#getDescriptor
  * getDescriptor} method. Module descriptors can also be created using the
- * {@link ModuleDescriptor.Builder} class or by reading the binary form of a
+ * {@link Builder} class or by reading the binary form of a
  * module declaration ({@code module-info.class}) using the {@link
  * #read(InputStream,Supplier) read} methods defined here. </p>
  *
@@ -86,13 +86,13 @@ import jdk.internal.module.ModuleInfo;
  * <p> {@code ModuleDescriptor} objects are immutable and safe for use by
  * multiple concurrent threads.</p>
  *
- * @see java.lang.Module
+ * @see Module
  * @since 9
  * @spec JPMS
  */
 
 public class ModuleDescriptor
-        implements Comparable<ModuleDescriptor>
+    implements Comparable<ModuleDescriptor>
 {
 
     /**
@@ -139,7 +139,7 @@ public class ModuleDescriptor
      */
 
     public final static class Requires
-            implements Comparable<Requires>
+        implements Comparable<Requires>
     {
 
         /**
@@ -304,7 +304,7 @@ public class ModuleDescriptor
          * both modules. </p>
          *
          * <p> This method satisfies the general contract of the {@link
-         * java.lang.Object#equals(Object) Object.equals} method. </p>
+         * Object#equals(Object) Object.equals} method. </p>
          *
          * @param   ob
          *          the object to which this object is to be compared
@@ -358,7 +358,7 @@ public class ModuleDescriptor
         }
     }
 
-
+
 
     /**
      * <p> A package exported by a module, may be qualified or unqualified. </p>
@@ -369,7 +369,7 @@ public class ModuleDescriptor
      */
 
     public final static class Exports
-            implements Comparable<Exports>
+        implements Comparable<Exports>
     {
 
         /**
@@ -528,7 +528,7 @@ public class ModuleDescriptor
          * of target module names is equal. </p>
          *
          * <p> This method satisfies the general contract of the {@link
-         * java.lang.Object#equals(Object) Object.equals} method. </p>
+         * Object#equals(Object) Object.equals} method. </p>
          *
          * @param   ob
          *          the object to which this object is to be compared
@@ -577,7 +577,7 @@ public class ModuleDescriptor
      */
 
     public final static class Opens
-            implements Comparable<Opens>
+        implements Comparable<Opens>
     {
         /**
          * A modifier on an open package.
@@ -735,7 +735,7 @@ public class ModuleDescriptor
          * of target module names is equal. </p>
          *
          * <p> This method satisfies the general contract of the {@link
-         * java.lang.Object#equals(Object) Object.equals} method. </p>
+         * Object#equals(Object) Object.equals} method. </p>
          *
          * @param   ob
          *          the object to which this object is to be compared
@@ -778,7 +778,7 @@ public class ModuleDescriptor
      */
 
     public final static class Provides
-            implements Comparable<Provides>
+        implements Comparable<Provides>
     {
         private final String service;
         private final List<String> providers;
@@ -871,7 +871,7 @@ public class ModuleDescriptor
          * service type is equal and the list of providers is equal. </p>
          *
          * <p> This method satisfies the general contract of the {@link
-         * java.lang.Object#equals(Object) Object.equals} method. </p>
+         * Object#equals(Object) Object.equals} method. </p>
          *
          * @param   ob
          *          the object to which this object is to be compared
@@ -900,7 +900,7 @@ public class ModuleDescriptor
 
     }
 
-
+
 
     /**
      * A module's version string.
@@ -952,7 +952,7 @@ public class ModuleDescriptor
      */
 
     public final static class Version
-            implements Comparable<Version>
+        implements Comparable<Version>
     {
 
         private final String version;
@@ -1022,8 +1022,8 @@ public class ModuleDescriptor
             char c = v.charAt(i);
             if (!(c >= '0' && c <= '9'))
                 throw new IllegalArgumentException(v
-                        + ": Version string does not start"
-                        + " with a number");
+                                                   + ": Version string does not start"
+                                                   + " with a number");
 
             List<Object> sequence = new ArrayList<>(4);
             List<Object> pre = new ArrayList<>(2);
@@ -1120,7 +1120,7 @@ public class ModuleDescriptor
                 Object o1 = ts1.get(i);
                 Object o2 = ts2.get(i);
                 if ((o1 instanceof Integer && o2 instanceof Integer)
-                        || (o1 instanceof String && o2 instanceof String))
+                    || (o1 instanceof String && o2 instanceof String))
                 {
                     int c = cmp(o1, o2);
                     if (c == 0)
@@ -1177,7 +1177,7 @@ public class ModuleDescriptor
          * corresponding components are equal. </p>
          *
          * <p> This method satisfies the general contract of the {@link
-         * java.lang.Object#equals(Object) Object.equals} method. </p>
+         * Object#equals(Object) Object.equals} method. </p>
          *
          * @param   ob
          *          the object to which this object is to be compared
@@ -1478,11 +1478,11 @@ public class ModuleDescriptor
      * <em>normal</em>, open, and automatic modules. </p>
      *
      * <p> The set of packages in the module are accumulated by the {@code
-     * Builder} as the {@link ModuleDescriptor.Builder#exports(String) exports},
-     * {@link ModuleDescriptor.Builder#opens(String) opens},
-     * {@link ModuleDescriptor.Builder#packages(Set) packages},
-     * {@link ModuleDescriptor.Builder#provides(String,List) provides}, and
-     * {@link ModuleDescriptor.Builder#mainClass(String) mainClass} methods are
+     * Builder} as the {@link Builder#exports(String) exports},
+     * {@link Builder#opens(String) opens},
+     * {@link Builder#packages(Set) packages},
+     * {@link Builder#provides(String,List) provides}, and
+     * {@link Builder#mainClass(String) mainClass} methods are
      * invoked. </p>
      *
      * <p> The module names, package names, and class names that are parameters
@@ -1565,13 +1565,13 @@ public class ModuleDescriptor
         public Builder requires(Requires req) {
             if (automatic)
                 throw new IllegalStateException("Automatic modules cannot declare"
-                        + " dependences");
+                                                + " dependences");
             String mn = req.name();
             if (name.equals(mn))
                 throw new IllegalArgumentException("Dependence on self");
             if (requires.containsKey(mn))
                 throw new IllegalStateException("Dependence upon " + mn
-                        + " already declared");
+                                                + " already declared");
             requires.put(mn, req);
             return this;
         }
@@ -1681,12 +1681,12 @@ public class ModuleDescriptor
         public Builder exports(Exports e) {
             if (automatic) {
                 throw new IllegalStateException("Automatic modules cannot declare"
-                        + " exported packages");
+                                                 + " exported packages");
             }
             String source = e.source();
             if (exports.containsKey(source)) {
                 throw new IllegalStateException("Exported package " + source
-                        + " already declared");
+                                                 + " already declared");
             }
             exports.put(source, e);
             packages.add(source);
@@ -1814,12 +1814,12 @@ public class ModuleDescriptor
         public Builder opens(Opens obj) {
             if (open || automatic) {
                 throw new IllegalStateException("Open or automatic modules cannot"
-                        + " declare open packages");
+                                                + " declare open packages");
             }
             String source = obj.source();
             if (opens.containsKey(source)) {
                 throw new IllegalStateException("Open package " + source
-                        + " already declared");
+                                                + " already declared");
             }
             opens.put(source, obj);
             packages.add(source);
@@ -1950,10 +1950,10 @@ public class ModuleDescriptor
         public Builder uses(String service) {
             if (automatic)
                 throw new IllegalStateException("Automatic modules can not declare"
-                        + " service dependences");
+                                                + " service dependences");
             if (uses.contains(requireServiceTypeName(service)))
                 throw new IllegalStateException("Dependence upon service "
-                        + service + " already declared");
+                                                + service + " already declared");
             uses.add(service);
             return this;
         }
@@ -1976,7 +1976,7 @@ public class ModuleDescriptor
             String service = p.service();
             if (provides.containsKey(service))
                 throw new IllegalStateException("Providers of service "
-                        + service + " already declared");
+                                                + service + " already declared");
             provides.put(service, p);
             p.providers().forEach(name -> packages.add(packageName(name)));
             return this;
@@ -2013,13 +2013,13 @@ public class ModuleDescriptor
                 String pn = packageName(service);
                 if (pn.isEmpty()) {
                     throw new IllegalArgumentException(service
-                            + ": unnamed package");
+                                                       + ": unnamed package");
                 }
                 for (String name : providers) {
                     pn = packageName(name);
                     if (pn.isEmpty()) {
                         throw new IllegalArgumentException(name
-                                + ": unnamed package");
+                                                           + ": unnamed package");
                     }
                 }
             }
@@ -2129,7 +2129,7 @@ public class ModuleDescriptor
          * has not been declared (the exception is when building a module named
          * "{@code java.base}" as it cannot require itself). The dependence on
          * "{@code java.base}" will have the {@link
-         * java.lang.module.ModuleDescriptor.Requires.Modifier#MANDATED MANDATED}
+         * Requires.Modifier#MANDATED MANDATED}
          * modifier if the dependence was not declared. </p>
          *
          * @return The module descriptor
@@ -2144,24 +2144,24 @@ public class ModuleDescriptor
                     && !name.equals("java.base")
                     && !this.requires.containsKey("java.base")) {
                 requires.add(new Requires(Set.of(Requires.Modifier.MANDATED),
-                        "java.base",
-                        null,
-                        null));
+                                          "java.base",
+                                          null,
+                                          null));
             }
 
             Set<Provides> provides = new HashSet<>(this.provides.values());
 
             return new ModuleDescriptor(name,
-                    version,
-                    rawVersionString,
-                    modifiers,
-                    requires,
-                    exports,
-                    opens,
-                    uses,
-                    provides,
-                    packages,
-                    mainClass);
+                                        version,
+                                        rawVersionString,
+                                        modifiers,
+                                        requires,
+                                        exports,
+                                        opens,
+                                        uses,
+                                        provides,
+                                        packages,
+                                        mainClass);
         }
 
     }
@@ -2241,7 +2241,7 @@ public class ModuleDescriptor
      * of their corresponding components is equal. </p>
      *
      * <p> This method satisfies the general contract of the {@link
-     * java.lang.Object#equals(Object) Object.equals} method. </p>
+     * Object#equals(Object) Object.equals} method. </p>
      *
      * @param   ob
      *          the object to which this object is to be compared
@@ -2348,7 +2348,7 @@ public class ModuleDescriptor
         Set<Modifier> mods = new HashSet<>(ms);
         if (mods.contains(Modifier.AUTOMATIC) && mods.size() > 1)
             throw new IllegalArgumentException("AUTOMATIC cannot be used with"
-                    + " other modifiers");
+                                               + " other modifiers");
 
         return new Builder(name, true, mods);
     }
@@ -2356,7 +2356,7 @@ public class ModuleDescriptor
     /**
      * Instantiates a builder to build a module descriptor for a <em>normal</em>
      * module. This method is equivalent to invoking {@link #newModule(String,Set)
-     * newModule} with an empty set of {@link ModuleDescriptor.Modifier modifiers}.
+     * newModule} with an empty set of {@link Modifier modifiers}.
      *
      * @param  name
      *         The module name
@@ -2374,7 +2374,7 @@ public class ModuleDescriptor
     /**
      * Instantiates a builder to build a module descriptor for an open module.
      * This method is equivalent to invoking {@link #newModule(String,Set)
-     * newModule} with the {@link ModuleDescriptor.Modifier#OPEN OPEN} modifier.
+     * newModule} with the {@link Modifier#OPEN OPEN} modifier.
      *
      * <p> The builder for an open module cannot be used to declare any open
      * packages. </p>
@@ -2395,7 +2395,7 @@ public class ModuleDescriptor
     /**
      * Instantiates a builder to build a module descriptor for an automatic
      * module. This method is equivalent to invoking {@link #newModule(String,Set)
-     * newModule} with the {@link ModuleDescriptor.Modifier#AUTOMATIC AUTOMATIC}
+     * newModule} with the {@link Modifier#AUTOMATIC AUTOMATIC}
      * modifier.
      *
      * <p> The builder for an automatic module cannot be used to declare module
@@ -2460,7 +2460,7 @@ public class ModuleDescriptor
      */
     public static ModuleDescriptor read(InputStream in,
                                         Supplier<Set<String>> packageFinder)
-            throws IOException
+        throws IOException
     {
         return ModuleInfo.read(in, requireNonNull(packageFinder)).descriptor();
     }
@@ -2563,8 +2563,8 @@ public class ModuleDescriptor
      */
     private static <M> String toString(Set<M> mods, String what) {
         return (Stream.concat(mods.stream().map(e -> e.toString()
-                        .toLowerCase(Locale.ROOT)),
-                Stream.of(what)))
+                                                      .toLowerCase(Locale.ROOT)),
+                              Stream.of(what)))
                 .collect(Collectors.joining(" "));
     }
 
@@ -2604,101 +2604,101 @@ public class ModuleDescriptor
          * private package methods in java.lang.module.
          */
         jdk.internal.access.SharedSecrets
-                .setJavaLangModuleAccess(new jdk.internal.access.JavaLangModuleAccess() {
-                    @Override
-                    public Builder newModuleBuilder(String mn,
-                                                    boolean strict,
-                                                    Set<ModuleDescriptor.Modifier> modifiers) {
-                        return new Builder(mn, strict, modifiers);
-                    }
+            .setJavaLangModuleAccess(new jdk.internal.access.JavaLangModuleAccess() {
+                @Override
+                public Builder newModuleBuilder(String mn,
+                                                boolean strict,
+                                                Set<Modifier> modifiers) {
+                    return new Builder(mn, strict, modifiers);
+                }
 
-                    @Override
-                    public Set<String> packages(ModuleDescriptor.Builder builder) {
-                        return builder.packages();
-                    }
+                @Override
+                public Set<String> packages(Builder builder) {
+                    return builder.packages();
+                }
 
-                    @Override
-                    public void requires(ModuleDescriptor.Builder builder,
-                                         Set<Requires.Modifier> ms,
-                                         String mn,
-                                         String rawCompiledVersion) {
-                        builder.requires(ms, mn, rawCompiledVersion);
-                    }
+                @Override
+                public void requires(Builder builder,
+                                     Set<Requires.Modifier> ms,
+                                     String mn,
+                                     String rawCompiledVersion) {
+                    builder.requires(ms, mn, rawCompiledVersion);
+                }
 
-                    @Override
-                    public Requires newRequires(Set<Requires.Modifier> ms, String mn, Version v) {
-                        return new Requires(ms, mn, v, true);
-                    }
+                @Override
+                public Requires newRequires(Set<Requires.Modifier> ms, String mn, Version v) {
+                    return new Requires(ms, mn, v, true);
+                }
 
-                    @Override
-                    public Exports newExports(Set<Exports.Modifier> ms, String source) {
-                        return new Exports(ms, source, Set.of(), true);
-                    }
+                @Override
+                public Exports newExports(Set<Exports.Modifier> ms, String source) {
+                    return new Exports(ms, source, Set.of(), true);
+                }
 
-                    @Override
-                    public Exports newExports(Set<Exports.Modifier> ms,
-                                              String source,
-                                              Set<String> targets) {
-                        return new Exports(ms, source, targets, true);
-                    }
-
-                    @Override
-                    public Opens newOpens(Set<Opens.Modifier> ms,
+                @Override
+                public Exports newExports(Set<Exports.Modifier> ms,
                                           String source,
                                           Set<String> targets) {
-                        return new Opens(ms, source, targets, true);
-                    }
+                    return new Exports(ms, source, targets, true);
+                }
 
-                    @Override
-                    public Opens newOpens(Set<Opens.Modifier> ms, String source) {
-                        return new Opens(ms, source, Set.of(), true);
-                    }
+                @Override
+                public Opens newOpens(Set<Opens.Modifier> ms,
+                                      String source,
+                                      Set<String> targets) {
+                    return new Opens(ms, source, targets, true);
+                }
 
-                    @Override
-                    public Provides newProvides(String service, List<String> providers) {
-                        return new Provides(service, providers, true);
-                    }
+                @Override
+                public Opens newOpens(Set<Opens.Modifier> ms, String source) {
+                    return new Opens(ms, source, Set.of(), true);
+                }
 
-                    @Override
-                    public ModuleDescriptor newModuleDescriptor(String name,
-                                                                Version version,
-                                                                Set<ModuleDescriptor.Modifier> modifiers,
-                                                                Set<Requires> requires,
-                                                                Set<Exports> exports,
-                                                                Set<Opens> opens,
-                                                                Set<String> uses,
-                                                                Set<Provides> provides,
-                                                                Set<String> packages,
-                                                                String mainClass,
-                                                                int hashCode) {
-                        return new ModuleDescriptor(name,
-                                version,
-                                modifiers,
-                                requires,
-                                exports,
-                                opens,
-                                uses,
-                                provides,
-                                packages,
-                                mainClass,
-                                hashCode,
-                                false);
-                    }
+                @Override
+                public Provides newProvides(String service, List<String> providers) {
+                    return new Provides(service, providers, true);
+                }
 
-                    @Override
-                    public Configuration resolveAndBind(ModuleFinder finder,
-                                                        Collection<String> roots,
-                                                        PrintStream traceOutput)
-                    {
-                        return Configuration.resolveAndBind(finder, roots, traceOutput);
-                    }
+                @Override
+                public ModuleDescriptor newModuleDescriptor(String name,
+                                                            Version version,
+                                                            Set<Modifier> modifiers,
+                                                            Set<Requires> requires,
+                                                            Set<Exports> exports,
+                                                            Set<Opens> opens,
+                                                            Set<String> uses,
+                                                            Set<Provides> provides,
+                                                            Set<String> packages,
+                                                            String mainClass,
+                                                            int hashCode) {
+                    return new ModuleDescriptor(name,
+                                                version,
+                                                modifiers,
+                                                requires,
+                                                exports,
+                                                opens,
+                                                uses,
+                                                provides,
+                                                packages,
+                                                mainClass,
+                                                hashCode,
+                                                false);
+                }
 
-                    @Override
-                    public Configuration newConfiguration(ModuleFinder finder,
-                                                          Map<String, Set<String>> graph) {
-                        return new Configuration(finder, graph);
-                    }
-                });
+                @Override
+                public Configuration resolveAndBind(ModuleFinder finder,
+                                                    Collection<String> roots,
+                                                    PrintStream traceOutput)
+                {
+                    return Configuration.resolveAndBind(finder, roots, traceOutput);
+                }
+
+                @Override
+                public Configuration newConfiguration(ModuleFinder finder,
+                                                      Map<String, Set<String>> graph) {
+                    return new Configuration(finder, graph);
+                }
+            });
     }
 
 }

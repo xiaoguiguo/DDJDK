@@ -99,13 +99,13 @@ import jdk.internal.HotSpotIntrinsicCandidate;
  * {@link java.util.SortedSet SortedSet} for more information.
  *
  * @author      Arthur van Hoff
- * @see     java.lang.StringBuilder
- * @see     java.lang.String
+ * @see     StringBuilder
+ * @see     String
  * @since   1.0
  */
-public final class StringBuffer
-        extends AbstractStringBuilder
-        implements java.io.Serializable, Comparable<StringBuffer>, CharSequence
+ public final class StringBuffer
+    extends AbstractStringBuilder
+    implements java.io.Serializable, Comparable<StringBuffer>, CharSequence
 {
 
     /**
@@ -173,8 +173,8 @@ public final class StringBuffer
     /**
      * Compares two {@code StringBuffer} instances lexicographically. This method
      * follows the same rules for lexicographical comparison as defined in the
-     * {@linkplain java.lang.CharSequence#compare(java.lang.CharSequence,
-     * java.lang.CharSequence)  CharSequence.compare(this, another)} method.
+     * {@linkplain CharSequence#compare(CharSequence,
+     * CharSequence)  CharSequence.compare(this, another)} method.
      *
      * <p>
      * For finer-grained, locale-sensitive String comparison, refer to
@@ -586,7 +586,7 @@ public final class StringBuffer
      */
     @Override
     public synchronized StringBuffer insert(int dstOffset, CharSequence s,
-                                            int start, int end)
+            int start, int end)
     {
         toStringCache = null;
         super.insert(dstOffset, s, start, end);
@@ -713,7 +713,7 @@ public final class StringBuffer
         if (toStringCache == null) {
             return toStringCache =
                     isLatin1() ? StringLatin1.newString(value, 0, count)
-                            : StringUTF16.newString(value, 0, count);
+                               : StringUTF16.newString(value, 0, count);
         }
         return new String(toStringCache);
     }
@@ -730,18 +730,18 @@ public final class StringBuffer
      *              The value is ignored upon deserialization.
      */
     private static final java.io.ObjectStreamField[] serialPersistentFields =
-            {
-                    new java.io.ObjectStreamField("value", char[].class),
-                    new java.io.ObjectStreamField("count", Integer.TYPE),
-                    new java.io.ObjectStreamField("shared", Boolean.TYPE),
-            };
+    {
+        new java.io.ObjectStreamField("value", char[].class),
+        new java.io.ObjectStreamField("count", Integer.TYPE),
+        new java.io.ObjectStreamField("shared", Boolean.TYPE),
+    };
 
     /**
      * readObject is called to restore the state of the StringBuffer from
      * a stream.
      */
     private synchronized void writeObject(java.io.ObjectOutputStream s)
-            throws java.io.IOException {
+        throws java.io.IOException {
         java.io.ObjectOutputStream.PutField fields = s.putFields();
         char[] val = new char[capacity()];
         if (isLatin1()) {
@@ -760,7 +760,7 @@ public final class StringBuffer
      * a stream.
      */
     private void readObject(java.io.ObjectInputStream s)
-            throws java.io.IOException, ClassNotFoundException {
+        throws java.io.IOException, ClassNotFoundException {
         java.io.ObjectInputStream.GetField fields = s.readFields();
         char[] val = (char[])fields.get("value", null);
         initBytes(val, 0, val.length);

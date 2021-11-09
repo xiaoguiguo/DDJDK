@@ -95,7 +95,7 @@ final class Resolver {
                 } else {
                     if (!value.equals(targetPlatform)) {
                         String msg = "Parents have conflicting constraints on target" +
-                                "  platform: " + targetPlatform + ", " + value;
+                                     "  platform: " + targetPlatform + ", " + value;
                         throw new IllegalArgumentException(msg);
                     }
                 }
@@ -189,7 +189,7 @@ final class Resolver {
                     mref = findWithAfterFinder(dn);
                     if (mref == null) {
                         findFail("Module %s not found, required by %s",
-                                dn, descriptor.name());
+                                 dn, descriptor.name());
                     }
                 }
 
@@ -344,8 +344,8 @@ final class Resolver {
             } else {
                 if (!value.equals(targetPlatform)) {
                     findFail("Module %s has constraints on target platform (%s)"
-                                    + " that conflict with other modules: %s", mn,
-                            value, targetPlatform);
+                             + " that conflict with other modules: %s", mn,
+                             value, targetPlatform);
                 }
             }
         }
@@ -459,8 +459,8 @@ final class Resolver {
                         findFail("Unable to compute the hash of module %s", dn);
                     if (!Arrays.equals(recordedHash, actualHash)) {
                         findFail("Hash of %s (%s) differs to expected hash (%s)" +
-                                        " recorded in %s", dn, toHexString(actualHash),
-                                toHexString(recordedHash), descriptor.name());
+                                 " recorded in %s", dn, toHexString(actualHash),
+                                 toHexString(recordedHash), descriptor.name());
                     }
                 }
             }
@@ -505,26 +505,26 @@ final class Resolver {
             g2 = new HashMap<>(capacity);
         } else {
             g2 = parents.stream()
-                    .flatMap(Configuration::configurations)
-                    .distinct()
-                    .flatMap(c ->
-                            c.modules().stream().flatMap(m1 ->
-                                    m1.descriptor().requires().stream()
-                                            .filter(r -> r.modifiers().contains(Modifier.TRANSITIVE))
-                                            .flatMap(r -> {
-                                                Optional<ResolvedModule> m2 = c.findModule(r.name());
-                                                assert m2.isPresent()
-                                                        || r.modifiers().contains(Modifier.STATIC);
-                                                return m2.stream();
-                                            })
-                                            .map(m2 -> Map.entry(m1, m2))
-                            )
+                .flatMap(Configuration::configurations)
+                .distinct()
+                .flatMap(c ->
+                    c.modules().stream().flatMap(m1 ->
+                        m1.descriptor().requires().stream()
+                            .filter(r -> r.modifiers().contains(Modifier.TRANSITIVE))
+                            .flatMap(r -> {
+                                Optional<ResolvedModule> m2 = c.findModule(r.name());
+                                assert m2.isPresent()
+                                        || r.modifiers().contains(Modifier.STATIC);
+                                return m2.stream();
+                            })
+                            .map(m2 -> Map.entry(m1, m2))
                     )
-                    // stream of m1->m2
-                    .collect(Collectors.groupingBy(Map.Entry::getKey,
-                            HashMap::new,
-                            Collectors.mapping(Map.Entry::getValue, Collectors.toSet())
-                    ));
+                )
+                // stream of m1->m2
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        HashMap::new,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toSet())
+            ));
         }
 
         // populate g1 and g2 with the dependences from the selected modules
@@ -579,7 +579,7 @@ final class Resolver {
 
                     if (!name.equals(name2)) {
                         ResolvedModule m2
-                                = computeIfAbsent(nameToResolved, name2, cf, mref2);
+                            = computeIfAbsent(nameToResolved, name2, cf, mref2);
                         reads.add(m2);
                         if (descriptor2.isAutomatic())
                             requiresTransitive.add(m2);
@@ -699,10 +699,10 @@ final class Resolver {
                 if (descriptor2 != descriptor1 && !names.add(name2)) {
                     if (name2.equals(name1)) {
                         resolveFail("Module %s reads another module named %s",
-                                name1, name1);
+                                    name1, name1);
                     } else{
                         resolveFail("Module %s reads more than one module named %s",
-                                name1, name2);
+                                     name1, name2);
                     }
                 }
 
@@ -711,7 +711,7 @@ final class Resolver {
                     if (descriptor2 != descriptor1) {
                         for (String source : descriptor2.packages()) {
                             ModuleDescriptor supplier
-                                    = packageToExporter.putIfAbsent(source, descriptor2);
+                                = packageToExporter.putIfAbsent(source, descriptor2);
 
                             // descriptor2 and 'supplier' export source to descriptor1
                             if (supplier != null) {
@@ -730,7 +730,7 @@ final class Resolver {
                         // source is exported by descriptor2
                         String source = export.source();
                         ModuleDescriptor supplier
-                                = packageToExporter.putIfAbsent(source, descriptor2);
+                            = packageToExporter.putIfAbsent(source, descriptor2);
 
                         // descriptor2 and 'supplier' export source to descriptor1
                         if (supplier != null) {
@@ -749,16 +749,16 @@ final class Resolver {
                     String pn = packageName(service);
                     if (!packageToExporter.containsKey(pn)) {
                         resolveFail("Module %s does not read a module that exports %s",
-                                descriptor1.name(), pn);
+                                    descriptor1.name(), pn);
                     }
                 }
 
                 // provides S
-                for (ModuleDescriptor.Provides provides : descriptor1.provides()) {
+                for (Provides provides : descriptor1.provides()) {
                     String pn = packageName(provides.service());
                     if (!packageToExporter.containsKey(pn)) {
                         resolveFail("Module %s does not read a module that exports %s",
-                                descriptor1.name(), pn);
+                                    descriptor1.name(), pn);
                     }
                 }
 
@@ -787,7 +787,7 @@ final class Resolver {
 
         if (supplier1 == descriptor) {
             resolveFail("Module %s contains package %s"
-                            + ", module %s exports package %s to %s",
+                         + ", module %s exports package %s to %s",
                     descriptor.name(),
                     source,
                     supplier2.name(),

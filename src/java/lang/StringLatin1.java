@@ -1,30 +1,47 @@
+/*
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package java.lang;
 
-import jdk.internal.HotSpotIntrinsicCandidate;
-
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import jdk.internal.HotSpotIntrinsicCandidate;
 
-import static java.lang.String.*;
+import static java.lang.String.LATIN1;
+import static java.lang.String.UTF16;
+import static java.lang.String.checkOffset;
 
-/**
- * @className: StringLatin1
- * @author: doudou
- * @datetime: 2021/11/1
- * @description: 单字节 字符串
- */
 final class StringLatin1 {
 
-    /**
-     * value[index] & 0xff: 结果为int,即byte -> int
-     * 16进制数 0xff 二进制就是11111111 ,高位都为0
-     * 因为&操作中，超过0xff的部分，全部都会变成0，而对于0xff以内的数据，
-     * 它不会影响原来的值,取其最低8位,即一个字节的值,此操作也能保证负数补码不变
-     */
     public static char charAt(byte[] value, int index) {
         if (index < 0 || index >= value.length) {
             throw new StringIndexOutOfBoundsException(index);
@@ -40,27 +57,14 @@ final class StringLatin1 {
         return value.length;
     }
 
-    /**
-     * 获取字符串对应索引的 Unicode 代码点，根据编码做不同处理。
-     * 如果是 LATIN1 编码，直接将 byte 数组对应索引的元素与0xff做&操作并转成 int 类型。
-     * 相应的，UTF16 编码也需要对应做转换，它包含了两个字节。
-     */
     public static int codePointAt(byte[] value, int index, int end) {
         return value[index] & 0xff;
     }
 
-    /**
-     * 用于返回指定索引值前一个字符的代码点，实现与codePointAt方法类似，只是索引值要减1。
-     */
     public static int codePointBefore(byte[] value, int index) {
         return value[index - 1] & 0xff;
     }
 
-    /**
-     * 用于得到指定索引范围内代码点的个数，如果是 Latin1 编码则直接索引值相减，因为每个字节肯定都属于一个代码点。
-     * 如果是 UTF16 编码则要检查是否存在 High-surrogate 代码和 Low-surrogate 代码，
-     * 如果存在则说明需要4个字节来表示一个字符，此时要把 count 减1。
-     */
     public static int codePointCount(byte[] value, int beginIndex, int endIndex) {
         return endIndex - beginIndex;
     }
@@ -85,6 +89,7 @@ final class StringLatin1 {
         System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
+    @HotSpotIntrinsicCandidate
     public static boolean equals(byte[] value, byte[] other) {
         if (value.length == other.length) {
             for (int i = 0; i < value.length; i++) {
@@ -121,6 +126,9 @@ final class StringLatin1 {
         return compareToUTF16Values(value, other, len1, len2);
     }
 
+    /*
+     * Checks the boundary and then compares the byte arrays.
+     */
     public static int compareToUTF16(byte[] value, byte[] other, int len1, int len2) {
         checkOffset(len1, length(value));
         checkOffset(len2, StringUTF16.length(other));
@@ -190,14 +198,6 @@ final class StringLatin1 {
         return h;
     }
 
-    public static String newString(byte[] val, int index, int len) {
-        return new String(Arrays.copyOfRange(val, index, index + len), LATIN1);
-    }
-
-    public static char getChar(byte[] val, int index) {
-        return (char)(val[index] & 0xff);
-    }
-
     public static int indexOf(byte[] value, int ch, int fromIndex) {
         if (!canEncode(ch)) {
             return -1;
@@ -212,12 +212,13 @@ final class StringLatin1 {
         byte c = (byte)ch;
         for (int i = fromIndex; i < max; i++) {
             if (value[i] == c) {
-                return i;
+               return i;
             }
         }
         return -1;
     }
 
+    @HotSpotIntrinsicCandidate
     public static int indexOf(byte[] value, byte[] str) {
         if (str.length == 0) {
             return 0;
@@ -258,7 +259,7 @@ final class StringLatin1 {
         int strLastIndex = tgtCount - 1;
         char strLastChar = (char)(tgt[strLastIndex] & 0xff);
 
-        startSearchForLastChar:
+  startSearchForLastChar:
         while (true) {
             while (i >= min && (src[i] & 0xff) != strLastChar) {
                 i--;
@@ -387,16 +388,15 @@ final class StringLatin1 {
                 break;
             }
         }
-        if (first == len) {
+        if (first == len)
             return str;
-        }
         String lang = locale.getLanguage();
         if (lang == "tr" || lang == "az" || lang == "lt") {
             return toLowerCaseEx(str, value, first, locale, true);
         }
         byte[] result = new byte[len];
         System.arraycopy(value, 0, result, 0, first);  // Just copy the first few
-        // lowerCase characters.
+                                                       // lowerCase characters.
         for (int i = first; i < len; i++) {
             int cp = value[i] & 0xff;
             cp = Character.toLowerCase(cp);
@@ -471,7 +471,7 @@ final class StringLatin1 {
         }
         byte[] result = new byte[len];
         System.arraycopy(value, 0, result, 0, first);  // Just copy the first few
-        // upperCase characters.
+                                                       // upperCase characters.
         for (int i = first; i < len; i++) {
             int cp = value[i] & 0xff;
             cp = Character.toUpperCaseEx(cp);
@@ -506,7 +506,7 @@ final class StringLatin1 {
                 if (upperChar == Character.ERROR) {
                     if (localeDependent) {
                         upperCharArray =
-                                ConditionalSpecialCasing.toUpperCaseCharArray(str, i, locale);
+                            ConditionalSpecialCasing.toUpperCaseCharArray(str, i, locale);
                     } else {
                         upperCharArray = Character.toUpperCaseCharArray(srcChar);
                     }
@@ -538,7 +538,7 @@ final class StringLatin1 {
             len--;
         }
         return ((st > 0) || (len < value.length)) ?
-                newString(value, st, len - st) : null;
+            newString(value, st, len - st) : null;
     }
 
     public static int indexOfNonWhitespace(byte[] value) {
@@ -680,7 +680,6 @@ final class StringLatin1 {
         public int characteristics() {
             return Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.NONNULL;
         }
-
     }
 
     static Stream<String> lines(byte[] value) {
@@ -690,6 +689,10 @@ final class StringLatin1 {
     public static void putChar(byte[] val, int index, int c) {
         //assert (canEncode(c));
         val[index] = (byte)(c);
+    }
+
+    public static char getChar(byte[] val, int index) {
+        return (char)(val[index] & 0xff);
     }
 
     public static byte[] toBytes(int[] val, int off, int len) {
@@ -708,8 +711,13 @@ final class StringLatin1 {
         return new byte[] { (byte)c };
     }
 
+    public static String newString(byte[] val, int index, int len) {
+        return new String(Arrays.copyOfRange(val, index, index + len),
+                          LATIN1);
+    }
+
     public static void fillNull(byte[] val, int index, int end) {
-        java.util.Arrays.fill(val, index, end, (byte)0);
+        Arrays.fill(val, index, end, (byte)0);
     }
 
     // inflatedCopy byte[] -> char[]
@@ -741,34 +749,32 @@ final class StringLatin1 {
             this.index = origin;
             this.fence = fence;
             this.cs = acs | Spliterator.ORDERED | Spliterator.SIZED
-                    | Spliterator.SUBSIZED;
+                      | Spliterator.SUBSIZED;
         }
 
         @Override
         public OfInt trySplit() {
             int lo = index, mid = (lo + fence) >>> 1;
             return (lo >= mid)
-                    ? null
-                    : new CharsSpliterator(array, lo, index = mid, cs);
+                   ? null
+                   : new CharsSpliterator(array, lo, index = mid, cs);
         }
 
         @Override
         public void forEachRemaining(IntConsumer action) {
             byte[] a; int i, hi; // hoist accesses and checks from loop
-            if (action == null) {
+            if (action == null)
                 throw new NullPointerException();
-            }
             if ((a = array).length >= (hi = fence) &&
-                    (i = index) >= 0 && i < (index = hi)) {
+                (i = index) >= 0 && i < (index = hi)) {
                 do { action.accept(a[i] & 0xff); } while (++i < hi);
             }
         }
 
         @Override
         public boolean tryAdvance(IntConsumer action) {
-            if (action == null) {
+            if (action == null)
                 throw new NullPointerException();
-            }
             if (index >= 0 && index < fence) {
                 action.accept(array[index++] & 0xff);
                 return true;

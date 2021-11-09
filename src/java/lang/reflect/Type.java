@@ -1,15 +1,47 @@
+/*
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package java.lang.reflect;
 
 /**
- * @className: Type
- * @author: doudou
- * @datetime: 2021/10/31
- * @description: 这是一个顶层接口，java中的任何类型都可以用这个来表示，这个接口是Java编程语言中所有类型的公共超接口。
- * 这些类型包括原始类型、泛型类型、泛型变量类型、通配符类型、泛型数组类型、数组类型等各种类型。
+ * Type is the common superinterface for all types in the Java
+ * programming language. These include raw types, parameterized types,
+ * array types, type variables and primitive types.
+ *
+ * @since 1.5
  */
 public interface Type {
-
-    /** Returns a string describing this type, including information about any type parameters */
+    /**
+     * Returns a string describing this type, including information
+     * about any type parameters.
+     *
+     * @implSpec The default implementation calls {@code toString}.
+     *
+     * @return a string describing this type
+     * @since 1.8
+     */
     default String getTypeName() {
         return toString();
     }

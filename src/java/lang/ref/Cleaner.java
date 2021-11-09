@@ -67,7 +67,7 @@ import java.util.function.Function;
  * <p>
  * Unless otherwise noted, passing a {@code null} argument to a constructor or
  * method in this class will cause a
- * {@link java.lang.NullPointerException NullPointerException} to be thrown.
+ * {@link NullPointerException NullPointerException} to be thrown.
  *
  * @apiNote
  * The cleaning action is invoked only after the associated object becomes
@@ -156,11 +156,11 @@ public final class Cleaner {
      * <p>
      * The cleaner creates a {@link Thread#setDaemon(boolean) daemon thread}
      * to process the phantom reachable objects and to invoke cleaning actions.
-     * The {@linkplain java.lang.Thread#getContextClassLoader context class loader}
+     * The {@linkplain Thread#getContextClassLoader context class loader}
      * of the thread is set to the
      * {@link ClassLoader#getSystemClassLoader() system class loader}.
      * The thread has no permissions, enforced only if a
-     * {@link java.lang.System#setSecurityManager(SecurityManager) SecurityManager is set}.
+     * {@link System#setSecurityManager(SecurityManager) SecurityManager is set}.
      * <p>
      * The cleaner terminates when it is phantom reachable and all of the
      * registered cleaning actions are complete.

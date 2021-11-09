@@ -1,4 +1,33 @@
+/*
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package java.lang.reflect;
+
+import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandle;
+import java.security.AccessController;
 
 import jdk.internal.misc.VM;
 import jdk.internal.module.IllegalAccessLogger;
@@ -8,31 +37,82 @@ import jdk.internal.reflect.ReflectionFactory;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.SecurityConstants;
 
-import java.lang.annotation.Annotation;
-import java.lang.invoke.MethodHandle;
-import java.security.AccessController;
-
 /**
- * AccessibleObject是一个普通Java类，实现了AnnotatedElement接口，
- * 但是对应AnnotatedElement的非默认方法的实现都是直接抛异常，
- * 也就是AnnotatedElement的接口方法必须由AccessibleObject的子类去实现，
+ * The {@code AccessibleObject} class is the base class for {@code Field},
+ * {@code Method}, and {@code Constructor} objects (known as <em>reflected
+ * objects</em>). It provides the ability to flag a reflected object as
+ * suppressing checks for Java language access control when it is used. This
+ * permits sophisticated applications with sufficient privilege, such as Java
+ * Object Serialization or other persistence mechanisms, to manipulate objects
+ * in a manner that would normally be prohibited.
  *
- * AccessibleObject 类是 Field、Method 和 Constructor 对象（称为反射对象）的基类。
- * 它提供了在使用时将反射对象标记为禁止检查 Java 语言访问控制的能力。
- * 这允许具有足够特权的复杂应用程序（例如 Java 对象序列化或其他持久性机制）以通常被禁止的方式操作对象。
+ * <p> Java language access control prevents use of private members outside
+ * their top-level class; package access members outside their package; protected members
+ * outside their package or subclasses; and public members outside their
+ * module unless they are declared in an {@link Module#isExported(String,Module)
+ * exported} package and the user {@link Module#canRead reads} their module. By
+ * default, Java language access control is enforced (with one variation) when
+ * {@code Field}s, {@code Method}s, or {@code Constructor}s are used to get or
+ * set fields, to invoke methods, or to create and initialize new instances of
+ * classes, respectively. Every reflected object checks that the code using it
+ * is in an appropriate class, package, or module. </p>
  *
- * 一般而言，我们需要通过getModifiers()方法判断修饰符是否public，
- * 如果是非public，则需要调用setAccessible(true)进行修饰符抑制，否则会因为无权限访问会抛出异常
+ * <p> The one variation from Java language access control is that the checks
+ * by reflected objects assume readability. That is, the module containing
+ * the use of a reflected object is assumed to read the module in which
+ * the underlying field, method, or constructor is declared. </p>
+ *
+ * <p> Whether the checks for Java language access control can be suppressed
+ * (and thus, whether access can be enabled) depends on whether the reflected
+ * object corresponds to a member in an exported or open package
+ * (see {@link #setAccessible(boolean)}). </p>
+ *
+ * @jls 6.6 Access Control
+ * @since 1.2
+ * @revised 9
+ * @spec JPMS
  */
 public class AccessibleObject implements AnnotatedElement {
 
     static void checkPermission() {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
+            // SecurityConstants.ACCESS_PERMISSION is used to check
+            // whether a client has sufficient privilege to defeat Java
+            // language access control checks.
             sm.checkPermission(SecurityConstants.ACCESS_PERMISSION);
         }
     }
 
+    /**
+     * Convenience method to set the {@code accessible} flag for an
+     * array of reflected objects with a single security check (for efficiency).
+     *
+     * <p> This method may be used to enable access to all reflected objects in
+     * the array when access to each reflected object can be enabled as
+     * specified by {@link #setAccessible(boolean) setAccessible(boolean)}. </p>
+     *
+     * <p>If there is a security manager, its
+     * {@code checkPermission} method is first called with a
+     * {@code ReflectPermission("suppressAccessChecks")} permission.
+     *
+     * <p>A {@code SecurityException} is also thrown if any of the elements of
+     * the input {@code array} is a {@link Constructor}
+     * object for the class {@code java.lang.Class} and {@code flag} is true.
+     *
+     * @param array the array of AccessibleObjects
+     * @param flag  the new value for the {@code accessible} flag
+     *              in each object
+     * @throws InaccessibleObjectException if access cannot be enabled for all
+     *         objects in the array
+     * @throws SecurityException if the request is denied by the security manager
+     *         or an element in the array is a constructor for {@code
+     *         java.lang.Class}
+     * @see SecurityManager#checkPermission
+     * @see ReflectPermission
+     * @revised 9
+     * @spec JPMS
+     */
     @CallerSensitive
     public static void setAccessible(AccessibleObject[] array, boolean flag) {
         checkPermission();
@@ -178,8 +258,8 @@ public class AccessibleObject implements AnnotatedElement {
         }
 
         if (checkCanSetAccessible(Reflection.getCallerClass(),
-                declaringClass,
-                false)) {
+                                  declaringClass,
+                                  false)) {
             return setAccessible0(true);
         } else {
             return false;
@@ -187,11 +267,11 @@ public class AccessibleObject implements AnnotatedElement {
     }
 
 
-    /**
-     * If the given AccessibleObject is a {@code Constructor}, {@code Method}
-     * or {@code Field} then checks that its declaring class is in a package
-     * that can be accessed by the given caller of setAccessible.
-     */
+   /**
+    * If the given AccessibleObject is a {@code Constructor}, {@code Method}
+    * or {@code Field} then checks that its declaring class is in a package
+    * that can be accessed by the given caller of setAccessible.
+    */
     void checkCanSetAccessible(Class<?> caller) {
         // do nothing, needs to be overridden by Constructor, Method, Field
     }
@@ -233,8 +313,8 @@ public class AccessibleObject implements AnnotatedElement {
 
             // member is protected-static
             if (Modifier.isProtected(modifiers)
-                    && Modifier.isStatic(modifiers)
-                    && isSubclassOf(caller, declaringClass)) {
+                && Modifier.isStatic(modifiers)
+                && isSubclassOf(caller, declaringClass)) {
                 logIfExportedForIllegalAccess(caller, declaringClass);
                 return true;
             }
@@ -380,7 +460,7 @@ public class AccessibleObject implements AnnotatedElement {
             // must be a subclass of the declaring class of this reflected object
             if (!declaringClass.isAssignableFrom(obj.getClass())) {
                 throw new IllegalArgumentException("object is not an instance of "
-                        + declaringClass.getName());
+                                                   + declaringClass.getName());
             }
         } else if (obj != null) {
             throw new IllegalArgumentException("non-null object for " + this);
@@ -416,8 +496,8 @@ public class AccessibleObject implements AnnotatedElement {
     // method, and constructor accessors. Note that this is called
     // very early in the bootstrapping process.
     static final ReflectionFactory reflectionFactory =
-            AccessController.doPrivileged(
-                    new ReflectionFactory.GetReflectionFactoryAction());
+        AccessController.doPrivileged(
+            new ReflectionFactory.GetReflectionFactoryAction());
 
     /**
      * @throws NullPointerException {@inheritDoc}
@@ -505,11 +585,11 @@ public class AccessibleObject implements AnnotatedElement {
 
     final void checkAccess(Class<?> caller, Class<?> memberClass,
                            Class<?> targetClass, int modifiers)
-            throws IllegalAccessException
+        throws IllegalAccessException
     {
         if (!verifyAccess(caller, memberClass, targetClass, modifiers)) {
             IllegalAccessException e = Reflection.newIllegalAccessException(
-                    caller, memberClass, targetClass, modifiers);
+                caller, memberClass, targetClass, modifiers);
             if (printStackTraceWhenAccessFails()) {
                 e.printStackTrace(System.err);
             }
@@ -525,13 +605,13 @@ public class AccessibleObject implements AnnotatedElement {
         }
         Object cache = securityCheckCache;  // read volatile
         if (targetClass != null // instance member or constructor
-                && Modifier.isProtected(modifiers)
-                && targetClass != memberClass) {
+            && Modifier.isProtected(modifiers)
+            && targetClass != memberClass) {
             // Must match a 2-list of { caller, targetClass }.
             if (cache instanceof Class[]) {
                 Class<?>[] cache2 = (Class<?>[]) cache;
                 if (cache2[1] == targetClass &&
-                        cache2[0] == caller) {
+                    cache2[0] == caller) {
                     return true;     // ACCESS IS OK
                 }
                 // (Test cache[1] first since range check for [1]
@@ -560,10 +640,10 @@ public class AccessibleObject implements AnnotatedElement {
 
         // Success: Update the cache.
         Object cache = (targetClass != null
-                && Modifier.isProtected(modifiers)
-                && targetClass != memberClass)
-                ? new Class<?>[] { caller, targetClass }
-                : caller;
+                        && Modifier.isProtected(modifiers)
+                        && targetClass != memberClass)
+                        ? new Class<?>[] { caller, targetClass }
+                        : caller;
 
         // Note:  The two cache elements are not volatile,
         // but they are effectively final.  The Java memory model
@@ -602,6 +682,4 @@ public class AccessibleObject implements AnnotatedElement {
     AccessibleObject getRoot() {
         throw new InternalError();
     }
-
-
 }

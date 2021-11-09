@@ -365,13 +365,13 @@ public interface ModuleFinder {
                 // seed with modules already found
                 Set<ModuleReference> result = new HashSet<>(nameToModule.values());
                 finderList.stream()
-                        .flatMap(f -> f.findAll().stream())
-                        .forEach(mref -> {
-                            String name = mref.descriptor().name();
-                            if (nameToModule.putIfAbsent(name, mref) == null) {
-                                result.add(mref);
-                            }
-                        });
+                          .flatMap(f -> f.findAll().stream())
+                          .forEach(mref -> {
+                              String name = mref.descriptor().name();
+                              if (nameToModule.putIfAbsent(name, mref) == null) {
+                                  result.add(mref);
+                              }
+                          });
                 allModules = Collections.unmodifiableSet(result);
                 return allModules;
             }

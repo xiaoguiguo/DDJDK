@@ -91,7 +91,7 @@ public class ThreadLocal<T> {
      * zero.
      */
     private static AtomicInteger nextHashCode =
-            new AtomicInteger();
+        new AtomicInteger();
 
     /**
      * The difference between successively generated hash codes - turns
@@ -145,7 +145,7 @@ public class ThreadLocal<T> {
 
     /**
      * Creates a thread local variable.
-     * @see #withInitial(java.util.function.Supplier)
+     * @see #withInitial(Supplier)
      */
     public ThreadLocal() {
     }
@@ -236,12 +236,12 @@ public class ThreadLocal<T> {
      *
      * @since 1.5
      */
-    public void remove() {
-        ThreadLocalMap m = getMap(Thread.currentThread());
-        if (m != null) {
-            m.remove(this);
-        }
-    }
+     public void remove() {
+         ThreadLocalMap m = getMap(Thread.currentThread());
+         if (m != null) {
+             m.remove(this);
+         }
+     }
 
     /**
      * Get the map associated with a ThreadLocal. Overridden in

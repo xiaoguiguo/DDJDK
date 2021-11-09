@@ -65,7 +65,7 @@ final class FinalizerHistogram {
             Object referent = r.get();
             if (referent != null) {
                 countMap.computeIfAbsent(
-                        referent.getClass().getName(), Entry::new).increment();
+                    referent.getClass().getName(), Entry::new).increment();
                 /* Clear stack slot containing this variable, to decrease
                    the chances of false retention with a conservative GC */
                 referent = null;

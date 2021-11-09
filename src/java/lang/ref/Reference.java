@@ -276,7 +276,7 @@ public abstract class Reference<T> {
     // references, or (2) the reference processing thread is
     // processing references. Otherwise, returns false immediately.
     private static boolean waitForReferenceProcessing()
-            throws InterruptedException
+        throws InterruptedException
     {
         synchronized (processPendingLock) {
             if (processPendingActive || hasReferencePendingList()) {
@@ -306,7 +306,7 @@ public abstract class Reference<T> {
         SharedSecrets.setJavaLangRefAccess(new JavaLangRefAccess() {
             @Override
             public boolean waitForReferenceProcessing()
-                    throws InterruptedException
+                throws InterruptedException
             {
                 return Reference.waitForReferenceProcessing();
             }

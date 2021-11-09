@@ -1,19 +1,49 @@
+/*
+ * Copyright (c) 2003, 2004, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package java.lang.annotation;
 
+/**
+ * Annotation retention policy.  The constants of this enumerated type
+ * describe the various policies for retaining annotations.  They are used
+ * in conjunction with the {@link Retention} meta-annotation type to specify
+ * how long annotations are to be retained.
+ *
+ * @author  Joshua Bloch
+ * @since 1.5
+ */
 public enum RetentionPolicy {
-
     /**
      * Annotations are to be discarded by the compiler.
-     *
-     * 注解保留在源代码中，但是编译的时候会被编译器所丢弃。比如@Override, @SuppressWarnings
      */
     SOURCE,
 
     /**
      * Annotations are to be recorded in the class file by the compiler
-     * but need not be retained by the VM at run time. This is the default behavior.
-     *
-     * 这是默认的policy。注解会被保留在class文件中，但是在运行时期间就不会识别这个注解。
+     * but need not be retained by the VM at run time.  This is the default
+     * behavior.
      */
     CLASS,
 
@@ -21,7 +51,7 @@ public enum RetentionPolicy {
      * Annotations are to be recorded in the class file by the compiler and
      * retained by the VM at run time, so they may be read reflectively.
      *
-     * 注解会被保留在class文件中，同时运行时期间也会被识别。所以可以使用反射机制获取注解信息。比如@Deprecated
+     * @see java.lang.reflect.AnnotatedElement
      */
     RUNTIME
 }

@@ -83,7 +83,7 @@ final class Finalizer extends FinalReference<Object> { /* Package-private; must 
 
         try {
             Object finalizee = this.get();
-            if (finalizee != null && !(finalizee instanceof java.lang.Enum)) {
+            if (finalizee != null && !(finalizee instanceof Enum)) {
                 jla.invokeFinalize(finalizee);
 
                 // Clear stack slot containing this variable, to decrease
@@ -106,21 +106,21 @@ final class Finalizer extends FinalReference<Object> { /* Package-private; must 
      */
     private static void forkSecondaryFinalizer(final Runnable proc) {
         AccessController.doPrivileged(
-                new PrivilegedAction<>() {
-                    public Void run() {
-                        ThreadGroup tg = Thread.currentThread().getThreadGroup();
-                        for (ThreadGroup tgn = tg;
-                             tgn != null;
-                             tg = tgn, tgn = tg.getParent());
-                        Thread sft = new Thread(tg, proc, "Secondary finalizer", 0, false);
-                        sft.start();
-                        try {
-                            sft.join();
-                        } catch (InterruptedException x) {
-                            Thread.currentThread().interrupt();
-                        }
-                        return null;
-                    }});
+            new PrivilegedAction<>() {
+                public Void run() {
+                    ThreadGroup tg = Thread.currentThread().getThreadGroup();
+                    for (ThreadGroup tgn = tg;
+                         tgn != null;
+                         tg = tgn, tgn = tg.getParent());
+                    Thread sft = new Thread(tg, proc, "Secondary finalizer", 0, false);
+                    sft.start();
+                    try {
+                        sft.join();
+                    } catch (InterruptedException x) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                }});
     }
 
     /* Called by Runtime.runFinalization() */

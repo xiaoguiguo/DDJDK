@@ -67,9 +67,9 @@ import jdk.internal.module.ModuleTarget;
  * with the receiver as the parent configuration. The static methods are for
  * more advanced cases where there can be more than one parent configuration. </p>
  *
- * <p> Each {@link java.lang.ModuleLayer layer} of modules in the Java virtual
+ * <p> Each {@link ModuleLayer layer} of modules in the Java virtual
  * machine is created from a configuration. The configuration for the {@link
- * java.lang.ModuleLayer#boot() boot} layer is obtained by invoking {@code
+ * ModuleLayer#boot() boot} layer is obtained by invoking {@code
  * ModuleLayer.boot().configuration()}. The configuration for the boot layer
  * will often be the parent when creating new configurations. </p>
  *
@@ -98,7 +98,7 @@ import jdk.internal.module.ModuleTarget;
  *
  * @since 9
  * @spec JPMS
- * @see java.lang.ModuleLayer
+ * @see ModuleLayer
  */
 public final class Configuration {
 
@@ -130,7 +130,7 @@ public final class Configuration {
 
         @SuppressWarnings(value = {"rawtypes", "unchecked"})
         Entry<String, ResolvedModule>[] nameEntries
-                = (Entry<String, ResolvedModule>[])new Entry[g.size()];
+            = (Entry<String, ResolvedModule>[])new Entry[g.size()];
         ResolvedModule[] moduleArray = new ResolvedModule[g.size()];
         int i = 0;
         for (ResolvedModule resolvedModule : g.keySet()) {
@@ -159,7 +159,7 @@ public final class Configuration {
         // create map of name -> ResolvedModule
         @SuppressWarnings(value = {"rawtypes", "unchecked"})
         Entry<String, ResolvedModule>[] nameEntries
-                = (Entry<String, ResolvedModule>[])new Entry[moduleCount];
+            = (Entry<String, ResolvedModule>[])new Entry[moduleCount];
         ResolvedModule[] moduleArray = new ResolvedModule[moduleCount];
         String targetPlatform = null;
         int i = 0;
@@ -184,7 +184,7 @@ public final class Configuration {
         // create entries for readability graph
         @SuppressWarnings(value = {"rawtypes", "unchecked"})
         Entry<ResolvedModule, Set<ResolvedModule>>[] moduleEntries
-                = (Entry<ResolvedModule, Set<ResolvedModule>>[])new Entry[moduleCount];
+            = (Entry<ResolvedModule, Set<ResolvedModule>>[])new Entry[moduleCount];
         i = 0;
         for (ResolvedModule resolvedModule : moduleArray) {
             Set<String> names = map.get(resolvedModule.name());

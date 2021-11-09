@@ -129,7 +129,7 @@ public final class ResolvedModule {
      * to the module content. </p>
      *
      * <p> This method satisfies the general contract of the {@link
-     * java.lang.Object#equals(Object) Object.equals} method. </p>
+     * Object#equals(Object) Object.equals} method. </p>
      *
      * @param   ob
      *          the object to which this object is to be compared
