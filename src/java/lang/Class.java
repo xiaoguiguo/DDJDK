@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 1994, 2019, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
 package java.lang;
 
 import java.lang.annotation.Annotation;
@@ -82,73 +57,25 @@ import sun.reflect.annotation.*;
 import sun.reflect.misc.ReflectUtil;
 
 /**
- * Instances of the class {@code Class} represent classes and interfaces
- * in a running Java application. An enum type is a kind of class and an
- * annotation type is a kind of interface. Every array also
- * belongs to a class that is reflected as a {@code Class} object
- * that is shared by all arrays with the same element type and number
- * of dimensions.  The primitive Java types ({@code boolean},
- * {@code byte}, {@code char}, {@code short},
- * {@code int}, {@code long}, {@code float}, and
- * {@code double}), and the keyword {@code void} are also
- * represented as {@code Class} objects.
+ * 除了int等基本类型外，Java的其他类型全部都是class（包括interface）
+ * class是由JVM在执行过程中动态加载的。JVM在第一次读取到一种class类型时，将其加载进内存。
+ * 每加载一种class，JVM就为其创建一个Class类型的实例，并关联起来。
  *
- * <p> {@code Class} has no public constructor. Instead a {@code Class}
- * object is constructed automatically by the Java Virtual Machine
- * when a class loader invokes one of the
- * {@link ClassLoader#defineClass(String,byte[], int,int) defineClass} methods
- * and passes the bytes of a {@code class} file.
+ * 以String类为例，当JVM加载String类时，它首先读取String.class文件到内存，然后，为String类创建一个Class实例并关联起来：
+ * Class cls = new Class(String);
+ * 这个Class实例是JVM内部创建的，如果我们查看JDK源码，可以发现Class类的构造方法是private，只有JVM能创建Class实例，
+ * 我们自己的Java程序是无法创建Class实例的。
  *
- * <p> The methods of class {@code Class} expose many characteristics of a
- * class or interface. Most characteristics are derived from the {@code class}
- * file that the class loader passed to the Java Virtual Machine. A few
- * characteristics are determined by the class loading environment at run time,
- * such as the module returned by {@link #getModule() getModule()}.
+ * 一个Class实例包含了该class的所有完整信息：name/package/super/interface/field/method，所以获取到Class实例，
+ * 就可以通过反射（reflect）来获取对应类的所有信息。
  *
- * <p> Some methods of class {@code Class} expose whether the declaration of
- * a class or interface in Java source code was <em>enclosed</em> within
- * another declaration. Other methods describe how a class or interface
- * is situated in a <em>nest</em>. A <a id="nest">nest</a> is a set of
- * classes and interfaces, in the same run-time package, that
- * allow mutual access to their {@code private} members.
- * The classes and interfaces are known as <em>nestmates</em>.
- * One nestmate acts as the
- * <em>nest host</em>, and enumerates the other nestmates which
- * belong to the nest; each of them in turn records it as the nest host.
- * The classes and interfaces which belong to a nest, including its host, are
- * determined when
- * {@code class} files are generated, for example, a Java compiler
- * will typically record a top-level class as the host of a nest where the
- * other members are the classes and interfaces whose declarations are
- * enclosed within the top-level class declaration.
+ * 所有的类都是在对其第一次使用时，动态加载到 JVM 中的（懒加载）。当程序创建第一个对类的静态成员的引用时，就会加载这个类。
+ * 使用 new 创建类对象的时候也会被当作对类的静态成员的引用。因此 java 程序程序在它开始运行之前并非被完全加载，
+ * 其各个类都是在必需时才加载的。
  *
- * <p> The following example uses a {@code Class} object to print the
- * class name of an object:
- *
- * <blockquote><pre>
- *     void printClassName(Object obj) {
- *         System.out.println("The class of " + obj +
- *                            " is " + obj.getClass().getName());
- *     }
- * </pre></blockquote>
- *
- * <p> It is also possible to get the {@code Class} object for a named
- * type (or for void) using a class literal.  See Section 15.8.2 of
- * <cite>The Java&trade; Language Specification</cite>.
- * For example:
- *
- * <blockquote>
- *     {@code System.out.println("The name of class Foo is: "+Foo.class.getName());}
- * </blockquote>
- *
- * @param <T> the type of the class modeled by this {@code Class}
- * object.  For example, the type of {@code String.class} is {@code
- * Class<String>}.  Use {@code Class<?>} if the class being modeled is
- * unknown.
- *
- * @author  unascribed
- * @see     ClassLoader#defineClass(byte[], int, int)
- * @since   1.0
+ * 在类加载阶段，类加载器首先检查这个类的 Class 对象是否已经被加载。如果尚未加载，默认的类加载器就会根据类的全限定名查找 .class文件。
+ * 在这个类的字节码被加载时，它们会接受验证，以确保其没有被破坏，并且不包含不良 java 代码。一旦某个类的 Class 对象被载入内存，
+ * 我们就可以它来创建这个类的所有对象。
  */
 public final class Class<T> implements java.io.Serializable,
                               GenericDeclaration,
@@ -158,15 +85,16 @@ public final class Class<T> implements java.io.Serializable,
     private static final int ENUM      = 0x00004000;
     private static final int SYNTHETIC = 0x00001000;
 
+    /**
+     * 见Object
+     */
     private static native void registerNatives();
     static {
         registerNatives();
     }
 
     /*
-     * Private constructor. Only the Java Virtual Machine creates Class objects.
-     * This constructor is not used and prevents the default constructor being
-     * generated.
+     * 私有构造函数。 只有 Java 虚拟机创建 Class 对象。 不使用此构造函数并阻止生成默认构造函数。
      */
     private Class(ClassLoader loader, Class<?> arrayComponentType) {
         // Initialize final field for classLoader.  The initialization value of non-null
@@ -176,16 +104,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Converts the object to a string. The string representation is the
-     * string "class" or "interface", followed by a space, and then by the
-     * fully qualified name of the class in the format returned by
-     * {@code getName}.  If this {@code Class} object represents a
-     * primitive type, this method returns the name of the primitive type.  If
-     * this {@code Class} object represents void this method returns
-     * "void". If this {@code Class} object represents an array type,
-     * this method returns "class " followed by {@code getName}.
-     *
-     * @return a string representation of this class object.
+     * 返回对象的字符串表示
      */
     public String toString() {
         return (isInterface() ? "interface " : (isPrimitive() ? "" : "class "))
@@ -193,36 +112,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns a string describing this {@code Class}, including
-     * information about modifiers and type parameters.
-     *
-     * The string is formatted as a list of type modifiers, if any,
-     * followed by the kind of type (empty string for primitive types
-     * and {@code class}, {@code enum}, {@code interface}, or
-     * <code>&#64;</code>{@code interface}, as appropriate), followed
-     * by the type's name, followed by an angle-bracketed
-     * comma-separated list of the type's type parameters, if any.
-     *
-     * A space is used to separate modifiers from one another and to
-     * separate any modifiers from the kind of type. The modifiers
-     * occur in canonical order. If there are no type parameters, the
-     * type parameter list is elided.
-     *
-     * For an array type, the string starts with the type name,
-     * followed by an angle-bracketed comma-separated list of the
-     * type's type parameters, if any, followed by a sequence of
-     * {@code []} characters, one set of brackets per dimension of
-     * the array.
-     *
-     * <p>Note that since information about the runtime representation
-     * of a type is being generated, modifiers not present on the
-     * originating source code or illegal on the originating source
-     * code may be present.
-     *
-     * @return a string describing this {@code Class}, including
-     * information about modifiers and type parameters
-     *
-     * @since 1.8
+     * 返回一个描述此对象的字符串
      */
     public String toGenericString() {
         if (isPrimitive()) {
@@ -278,35 +168,13 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns the {@code Class} object associated with the class or
-     * interface with the given string name.  Invoking this method is
-     * equivalent to:
+     * 返回给定串名相应的Class对象。
      *
-     * <blockquote>
-     *  {@code Class.forName(className, true, currentLoader)}
-     * </blockquote>
+     * 1. 使用Class.forName()静态方法的目的是为了动态加载类。在加载完成后，一般还要调用Class下的newInstance()静态方法来实例化对象以便操作。
+     * 因此，单单使用Class.forName( )是动态加载类是没有用的，其最终目的是为了实例化对象。
      *
-     * where {@code currentLoader} denotes the defining class loader of
-     * the current class.
-     *
-     * <p> For example, the following code fragment returns the
-     * runtime {@code Class} descriptor for the class named
-     * {@code java.lang.Thread}:
-     *
-     * <blockquote>
-     *   {@code Class t = Class.forName("java.lang.Thread")}
-     * </blockquote>
-     * <p>
-     * A call to {@code forName("X")} causes the class named
-     * {@code X} to be initialized.
-     *
-     * @param      className   the fully qualified name of the desired class.
-     * @return     the {@code Class} object for the class with the
-     *             specified name.
-     * @exception LinkageError if the linkage fails
-     * @exception ExceptionInInitializerError if the initialization provoked
-     *            by this method fails
-     * @exception ClassNotFoundException if the class cannot be located
+     * 2. Class.forName()的作用是要求JVM查找并加载指定的类，首先要明白，java里面任何class都要装载在虚拟机上才能运行，
+     * 而静态代码是和class绑定的，class装载成功就表示执行了你的静态代码了，而且以后不会再走这段静态代码了。
      */
     @CallerSensitive
     public static Class<?> forName(String className)
@@ -317,64 +185,10 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns the {@code Class} object associated with the class or
-     * interface with the given string name, using the given class loader.
-     * Given the fully qualified name for a class or interface (in the same
-     * format returned by {@code getName}) this method attempts to
-     * locate, load, and link the class or interface.  The specified class
-     * loader is used to load the class or interface.  If the parameter
-     * {@code loader} is null, the class is loaded through the bootstrap
-     * class loader.  The class is initialized only if the
-     * {@code initialize} parameter is {@code true} and if it has
-     * not been initialized earlier.
-     *
-     * <p> If {@code name} denotes a primitive type or void, an attempt
-     * will be made to locate a user-defined class in the unnamed package whose
-     * name is {@code name}. Therefore, this method cannot be used to
-     * obtain any of the {@code Class} objects representing primitive
-     * types or void.
-     *
-     * <p> If {@code name} denotes an array class, the component type of
-     * the array class is loaded but not initialized.
-     *
-     * <p> For example, in an instance method the expression:
-     *
-     * <blockquote>
-     *  {@code Class.forName("Foo")}
-     * </blockquote>
-     *
-     * is equivalent to:
-     *
-     * <blockquote>
-     *  {@code Class.forName("Foo", true, this.getClass().getClassLoader())}
-     * </blockquote>
-     *
-     * Note that this method throws errors related to loading, linking or
-     * initializing as specified in Sections 12.2, 12.3 and 12.4 of <em>The
-     * Java Language Specification</em>.
-     * Note that this method does not check whether the requested class
-     * is accessible to its caller.
-     *
-     * @param name       fully qualified name of the desired class
-     * @param initialize if {@code true} the class will be initialized.
-     *                   See Section 12.4 of <em>The Java Language Specification</em>.
-     * @param loader     class loader from which the class must be loaded
-     * @return           class object representing the desired class
-     *
-     * @exception LinkageError if the linkage fails
-     * @exception ExceptionInInitializerError if the initialization provoked
-     *            by this method fails
-     * @exception ClassNotFoundException if the class cannot be located by
-     *            the specified class loader
-     * @exception SecurityException
-     *            if a security manager is present, and the {@code loader} is
-     *            {@code null}, and the caller's class loader is not
-     *            {@code null}, and the caller does not have the
-     *            {@link RuntimePermission}{@code ("getClassLoader")}
-     *
-     * @see       Class#forName(String)
-     * @see       ClassLoader
-     * @since     1.2
+     * 使用给定的类加载器返回与具有给定字符串名称的类或接口关联的 {@code Class} 对象。
+     * 给定类或接口的完全限定名称（与 {@code getName} 返回的格式相同），此方法尝试定位、加载和链接类或接口。
+     * 指定的类加载器用于加载类或接口。 如果参数 {@code loader} 为 null，则通过引导类加载器加载该类。
+     * 仅当 {@code initialize} 参数为 {@code true} 并且之前尚未初始化该类时，才会初始化该类。
      */
     @CallerSensitive
     public static Class<?> forName(String name, boolean initialize,
@@ -398,7 +212,7 @@ public final class Class<T> implements java.io.Serializable,
         return forName0(name, initialize, loader, caller);
     }
 
-    /** Called after security check for system loader access checks have been made. */
+    /** 在对系统加载程序访问检查进行安全检查后调用。 */
     private static native Class<?> forName0(String name, boolean initialize,
                                             ClassLoader loader,
                                             Class<?> caller)
@@ -406,49 +220,8 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns the {@code Class} with the given <a href="ClassLoader.html#name">
-     * binary name</a> in the given module.
-     *
-     * <p> This method attempts to locate, load, and link the class or interface.
-     * It does not run the class initializer.  If the class is not found, this
-     * method returns {@code null}. </p>
-     *
-     * <p> If the class loader of the given module defines other modules and
-     * the given name is a class defined in a different module, this method
-     * returns {@code null} after the class is loaded. </p>
-     *
-     * <p> This method does not check whether the requested class is
-     * accessible to its caller. </p>
-     *
-     * @apiNote
-     * This method returns {@code null} on failure rather than
-     * throwing a {@link ClassNotFoundException}, as is done by
-     * the {@link #forName(String, boolean, ClassLoader)} method.
-     * The security check is a stack-based permission check if the caller
-     * loads a class in another module.
-     *
-     * @param  module   A module
-     * @param  name     The <a href="ClassLoader.html#name">binary name</a>
-     *                  of the class
-     * @return {@code Class} object of the given name defined in the given module;
-     *         {@code null} if not found.
-     *
-     * @throws NullPointerException if the given module or name is {@code null}
-     *
-     * @throws LinkageError if the linkage fails
-     *
-     * @throws SecurityException
-     *         <ul>
-     *         <li> if the caller is not the specified module and
-     *         {@code RuntimePermission("getClassLoader")} permission is denied; or</li>
-     *         <li> access to the module content is denied. For example,
-     *         permission check will be performed when a class loader calls
-     *         {@link ModuleReader#open(String)} to read the bytes of a class file
-     *         in a module.</li>
-     *         </ul>
-     *
-     * @since 9
-     * @spec JPMS
+     * 返回给定模块中具有给定 <a href="ClassLoader.html#name"> 二进制名称</a> 的 {@code Class}。
+     * 此方法尝试定位、加载和链接类或接口。 它不运行类初始值设定项。 如果未找到该类，则此方法返回 {@code null}
      */
     @CallerSensitive
     public static Class<?> forName(Module module, String name) {
@@ -478,57 +251,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Creates a new instance of the class represented by this {@code Class}
-     * object.  The class is instantiated as if by a {@code new}
-     * expression with an empty argument list.  The class is initialized if it
-     * has not already been initialized.
-     *
-     * @deprecated This method propagates any exception thrown by the
-     * nullary constructor, including a checked exception.  Use of
-     * this method effectively bypasses the compile-time exception
-     * checking that would otherwise be performed by the compiler.
-     * The {@link
-     * Constructor#newInstance(Object...)
-     * Constructor.newInstance} method avoids this problem by wrapping
-     * any exception thrown by the constructor in a (checked) {@link
-     * InvocationTargetException}.
-     *
-     * <p>The call
-     *
-     * <pre>{@code
-     * clazz.newInstance()
-     * }</pre>
-     *
-     * can be replaced by
-     *
-     * <pre>{@code
-     * clazz.getDeclaredConstructor().newInstance()
-     * }</pre>
-     *
-     * The latter sequence of calls is inferred to be able to throw
-     * the additional exception types {@link
-     * InvocationTargetException} and {@link
-     * NoSuchMethodException}. Both of these exception types are
-     * subclasses of {@link ReflectiveOperationException}.
-     *
-     * @return  a newly allocated instance of the class represented by this
-     *          object.
-     * @throws  IllegalAccessException  if the class or its nullary
-     *          constructor is not accessible.
-     * @throws  InstantiationException
-     *          if this {@code Class} represents an abstract class,
-     *          an interface, an array class, a primitive type, or void;
-     *          or if the class has no nullary constructor;
-     *          or if the instantiation fails for some other reason.
-     * @throws  ExceptionInInitializerError if the initialization
-     *          provoked by this method fails.
-     * @throws  SecurityException
-     *          If a security manager, <i>s</i>, is present and
-     *          the caller's class loader is not the same as or an
-     *          ancestor of the class loader for the current class and
-     *          invocation of {@link SecurityManager#checkPackageAccess
-     *          s.checkPackageAccess()} denies access to the package
-     *          of this class.
+     * 创建对象的方法
      */
     @CallerSensitive
     @Deprecated(since="9")
@@ -593,34 +316,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Determines if the specified {@code Object} is assignment-compatible
-     * with the object represented by this {@code Class}.  This method is
-     * the dynamic equivalent of the Java language {@code instanceof}
-     * operator. The method returns {@code true} if the specified
-     * {@code Object} argument is non-null and can be cast to the
-     * reference type represented by this {@code Class} object without
-     * raising a {@code ClassCastException.} It returns {@code false}
-     * otherwise.
-     *
-     * <p> Specifically, if this {@code Class} object represents a
-     * declared class, this method returns {@code true} if the specified
-     * {@code Object} argument is an instance of the represented class (or
-     * of any of its subclasses); it returns {@code false} otherwise. If
-     * this {@code Class} object represents an array class, this method
-     * returns {@code true} if the specified {@code Object} argument
-     * can be converted to an object of the array class by an identity
-     * conversion or by a widening reference conversion; it returns
-     * {@code false} otherwise. If this {@code Class} object
-     * represents an interface, this method returns {@code true} if the
-     * class or any superclass of the specified {@code Object} argument
-     * implements this interface; it returns {@code false} otherwise. If
-     * this {@code Class} object represents a primitive type, this method
-     * returns {@code false}.
-     *
-     * @param   obj the object to check
-     * @return  true if {@code obj} is an instance of this class
-     *
-     * @since 1.1
+     * 判断指定的 Object 是否 Class 的实例
      */
     @HotSpotIntrinsicCandidate
     public native boolean isInstance(Object obj);
@@ -655,66 +351,27 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Determines if the specified {@code Class} object represents an
-     * interface type.
-     *
-     * @return  {@code true} if this object represents an interface;
-     *          {@code false} otherwise.
+     *  判断指定的 Class 对象是否表示一个接口类型
      */
     @HotSpotIntrinsicCandidate
     public native boolean isInterface();
 
 
     /**
-     * Determines if this {@code Class} object represents an array class.
-     *
-     * @return  {@code true} if this object represents an array class;
-     *          {@code false} otherwise.
-     * @since   1.1
+     * 判断指定的 Class 对象是否标识一个数组类型
      */
     @HotSpotIntrinsicCandidate
     public native boolean isArray();
 
 
     /**
-     * Determines if the specified {@code Class} object represents a
-     * primitive type.
-     *
-     * <p> There are nine predefined {@code Class} objects to represent
-     * the eight primitive types and void.  These are created by the Java
-     * Virtual Machine, and have the same names as the primitive types that
-     * they represent, namely {@code boolean}, {@code byte},
-     * {@code char}, {@code short}, {@code int},
-     * {@code long}, {@code float}, and {@code double}.
-     *
-     * <p> These objects may only be accessed via the following public static
-     * final variables, and are the only {@code Class} objects for which
-     * this method returns {@code true}.
-     *
-     * @return true if and only if this class represents a primitive type
-     *
-     * @see     Boolean#TYPE
-     * @see     Character#TYPE
-     * @see     Byte#TYPE
-     * @see     Short#TYPE
-     * @see     Integer#TYPE
-     * @see     Long#TYPE
-     * @see     Float#TYPE
-     * @see     Double#TYPE
-     * @see     Void#TYPE
-     * @since 1.1
+     * 判断指定的 Class 对象是否表示一个基本类型
      */
     @HotSpotIntrinsicCandidate
     public native boolean isPrimitive();
 
     /**
-     * Returns true if this {@code Class} object represents an annotation
-     * type.  Note that if this method returns true, {@link #isInterface()}
-     * would also return true, as all annotation types are also interfaces.
-     *
-     * @return {@code true} if this class object represents an annotation
-     *      type; {@code false} otherwise
-     * @since 1.5
+     * 判断当前Class对象是否是注解类型
      */
     public boolean isAnnotation() {
         return (getModifiers() & ANNOTATION) != 0;
@@ -733,60 +390,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns the  name of the entity (class, interface, array class,
-     * primitive type, or void) represented by this {@code Class} object,
-     * as a {@code String}.
-     *
-     * <p> If this class object represents a reference type that is not an
-     * array type then the binary name of the class is returned, as specified
-     * by
-     * <cite>The Java&trade; Language Specification</cite>.
-     *
-     * <p> If this class object represents a primitive type or void, then the
-     * name returned is a {@code String} equal to the Java language
-     * keyword corresponding to the primitive type or void.
-     *
-     * <p> If this class object represents a class of arrays, then the internal
-     * form of the name consists of the name of the element type preceded by
-     * one or more '{@code [}' characters representing the depth of the array
-     * nesting.  The encoding of element type names is as follows:
-     *
-     * <blockquote><table class="striped">
-     * <caption style="display:none">Element types and encodings</caption>
-     * <thead>
-     * <tr><th scope="col"> Element Type <th scope="col"> Encoding
-     * </thead>
-     * <tbody style="text-align:left">
-     * <tr><th scope="row"> boolean      <td style="text-align:center"> Z
-     * <tr><th scope="row"> byte         <td style="text-align:center"> B
-     * <tr><th scope="row"> char         <td style="text-align:center"> C
-     * <tr><th scope="row"> class or interface
-     *                                   <td style="text-align:center"> L<i>classname</i>;
-     * <tr><th scope="row"> double       <td style="text-align:center"> D
-     * <tr><th scope="row"> float        <td style="text-align:center"> F
-     * <tr><th scope="row"> int          <td style="text-align:center"> I
-     * <tr><th scope="row"> long         <td style="text-align:center"> J
-     * <tr><th scope="row"> short        <td style="text-align:center"> S
-     * </tbody>
-     * </table></blockquote>
-     *
-     * <p> The class or interface name <i>classname</i> is the binary name of
-     * the class specified above.
-     *
-     * <p> Examples:
-     * <blockquote><pre>
-     * String.class.getName()
-     *     returns "java.lang.String"
-     * byte.class.getName()
-     *     returns "byte"
-     * (new Object[3]).getClass().getName()
-     *     returns "[Ljava.lang.Object;"
-     * (new int[3][4][5][6][7][8][9]).getClass().getName()
-     *     returns "[[[[[[[I"
-     * </pre></blockquote>
-     *
-     * @return  the name of the class or interface
-     *          represented by this object.
+     * 返回全限定名
      */
     public String getName() {
         String name = this.name;
@@ -799,25 +403,7 @@ public final class Class<T> implements java.io.Serializable,
     private native String initClassName();
 
     /**
-     * Returns the class loader for the class.  Some implementations may use
-     * null to represent the bootstrap class loader. This method will return
-     * null in such implementations if this class was loaded by the bootstrap
-     * class loader.
-     *
-     * <p>If this object
-     * represents a primitive type or void, null is returned.
-     *
-     * @return  the class loader that loaded the class or interface
-     *          represented by this object.
-     * @throws  SecurityException
-     *          if a security manager is present, and the caller's class loader
-     *          is not {@code null} and is not the same as or an ancestor of the
-     *          class loader for the class whose class loader is requested,
-     *          and the caller does not have the
-     *          {@link RuntimePermission}{@code ("getClassLoader")}
-     * @see ClassLoader
-     * @see SecurityManager#checkPermission
-     * @see RuntimePermission
+     * 获取该类的类装载器。
      */
     @CallerSensitive
     @ForceInline // to ensure Reflection.getCallerClass optimization
@@ -836,21 +422,7 @@ public final class Class<T> implements java.io.Serializable,
     ClassLoader getClassLoader0() { return classLoader; }
 
     /**
-     * Returns the module that this class or interface is a member of.
-     *
-     * If this class represents an array type then this method returns the
-     * {@code Module} for the element type. If this class represents a
-     * primitive type or void, then the {@code Module} object for the
-     * {@code java.base} module is returned.
-     *
-     * If this class is in an unnamed module then the {@linkplain
-     * ClassLoader#getUnnamedModule() unnamed} {@code Module} of the class
-     * loader for this class is returned.
-     *
-     * @return the module that this class or interface is a member of
-     *
-     * @since 9
-     * @spec JPMS
+     * 返回此类或接口所属的模块。
      */
     public Module getModule() {
         return module;
@@ -1139,14 +711,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns the {@code Class} representing the component type of an
-     * array.  If this class does not represent an array class this method
-     * returns null.
-     *
-     * @return the {@code Class} representing the component type of this
-     * class if this class is an array
-     * @see     Array
-     * @since 1.1
+     * 如果当前类表示一个数组，则返回表示该数组组件的Class对象，否则返回null。
      */
     public Class<?> getComponentType() {
         // Only return for array types. Storage may be reused for Class for instance types.
@@ -1535,16 +1100,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns the simple name of the underlying class as given in the
-     * source code. Returns an empty string if the underlying class is
-     * anonymous.
-     *
-     * <p>The simple name of an array is the simple name of the
-     * component type with "[]" appended.  In particular the simple
-     * name of an array whose component type is anonymous is "[]".
-     *
-     * @return the simple name of the underlying class
-     * @since 1.5
+     * 返回源代码中给出的底层类的简称
      */
     public String getSimpleName() {
         ReflectionData<T> rd = reflectionData();
@@ -1594,14 +1150,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns the canonical name of the underlying class as
-     * defined by the Java Language Specification.  Returns null if
-     * the underlying class does not have a canonical name (i.e., if
-     * it is a local or anonymous class or an array whose component
-     * type does not have a canonical name).
-     * @return the canonical name of the underlying class if it exists, and
-     * {@code null} otherwise.
-     * @since 1.5
+     * 返回底层类的规范化名称
      */
     public String getCanonicalName() {
         ReflectionData<T> rd = reflectionData();
@@ -1634,11 +1183,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns {@code true} if and only if the underlying class
-     * is an anonymous class.
-     *
-     * @return {@code true} if and only if this class is an anonymous class.
-     * @since 1.5
+     * 判断当前类是不是匿名类，匿名类一般用于实例化接口
      */
     public boolean isAnonymousClass() {
         return !isArray() && isLocalOrAnonymousClass() &&
@@ -1646,11 +1191,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns {@code true} if and only if the underlying class
-     * is a local class.
-     *
-     * @return {@code true} if and only if this class is a local class.
-     * @since 1.5
+     * 判断是不是局部类，也就是方法里面的类
      */
     public boolean isLocalClass() {
         return isLocalOrAnonymousClass() &&
@@ -1658,11 +1199,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns {@code true} if and only if the underlying class
-     * is a member class.
-     *
-     * @return {@code true} if and only if this class is a member class.
-     * @since 1.5
+     * 判断是不是成员内部类，也就是一个类里面定义的类
      */
     public boolean isMemberClass() {
         return !isLocalOrAnonymousClass() && getDeclaringClass0() != null;
@@ -1906,33 +1443,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns an array containing {@code Constructor} objects reflecting
-     * all the public constructors of the class represented by this
-     * {@code Class} object.  An array of length 0 is returned if the
-     * class has no public constructors, or if the class is an array class, or
-     * if the class reflects a primitive type or void.
-     *
-     * Note that while this method returns an array of {@code
-     * Constructor<T>} objects (that is an array of constructors from
-     * this class), the return type of this method is {@code
-     * Constructor<?>[]} and <em>not</em> {@code Constructor<T>[]} as
-     * might be expected.  This less informative return type is
-     * necessary since after being returned from this method, the
-     * array could be modified to hold {@code Constructor} objects for
-     * different classes, which would violate the type guarantees of
-     * {@code Constructor<T>[]}.
-     *
-     * @return the array of {@code Constructor} objects representing the
-     *         public constructors of this class
-     * @throws SecurityException
-     *         If a security manager, <i>s</i>, is present and
-     *         the caller's class loader is not the same as or an
-     *         ancestor of the class loader for the current class and
-     *         invocation of {@link SecurityManager#checkPackageAccess
-     *         s.checkPackageAccess()} denies access to the package
-     *         of this class.
-     *
-     * @since 1.1
+     * 获取构造函数
      */
     @CallerSensitive
     public Constructor<?>[] getConstructors() throws SecurityException {
@@ -1945,46 +1456,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns a {@code Field} object that reflects the specified public member
-     * field of the class or interface represented by this {@code Class}
-     * object. The {@code name} parameter is a {@code String} specifying the
-     * simple name of the desired field.
-     *
-     * <p> The field to be reflected is determined by the algorithm that
-     * follows.  Let C be the class or interface represented by this object:
-     *
-     * <OL>
-     * <LI> If C declares a public field with the name specified, that is the
-     *      field to be reflected.</LI>
-     * <LI> If no field was found in step 1 above, this algorithm is applied
-     *      recursively to each direct superinterface of C. The direct
-     *      superinterfaces are searched in the order they were declared.</LI>
-     * <LI> If no field was found in steps 1 and 2 above, and C has a
-     *      superclass S, then this algorithm is invoked recursively upon S.
-     *      If C has no superclass, then a {@code NoSuchFieldException}
-     *      is thrown.</LI>
-     * </OL>
-     *
-     * <p> If this {@code Class} object represents an array type, then this
-     * method does not find the {@code length} field of the array type.
-     *
-     * @param name the field name
-     * @return the {@code Field} object of this class specified by
-     *         {@code name}
-     * @throws NoSuchFieldException if a field with the specified name is
-     *         not found.
-     * @throws NullPointerException if {@code name} is {@code null}
-     * @throws SecurityException
-     *         If a security manager, <i>s</i>, is present and
-     *         the caller's class loader is not the same as or an
-     *         ancestor of the class loader for the current class and
-     *         invocation of {@link SecurityManager#checkPackageAccess
-     *         s.checkPackageAccess()} denies access to the package
-     *         of this class.
-     *
-     * @since 1.1
-     * @jls 8.2 Class Members
-     * @jls 8.3 Field Declarations
+     * 获取指定的成员变量
      */
     @CallerSensitive
     public Field getField(String name)
@@ -2003,97 +1475,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns a {@code Method} object that reflects the specified public
-     * member method of the class or interface represented by this
-     * {@code Class} object. The {@code name} parameter is a
-     * {@code String} specifying the simple name of the desired method. The
-     * {@code parameterTypes} parameter is an array of {@code Class}
-     * objects that identify the method's formal parameter types, in declared
-     * order. If {@code parameterTypes} is {@code null}, it is
-     * treated as if it were an empty array.
-     *
-     * <p> If this {@code Class} object represents an array type, then this
-     * method finds any public method inherited by the array type from
-     * {@code Object} except method {@code clone()}.
-     *
-     * <p> If this {@code Class} object represents an interface then this
-     * method does not find any implicitly declared method from
-     * {@code Object}. Therefore, if no methods are explicitly declared in
-     * this interface or any of its superinterfaces, then this method does not
-     * find any method.
-     *
-     * <p> This method does not find any method with name "{@code <init>}" or
-     * "{@code <clinit>}".
-     *
-     * <p> Generally, the method to be reflected is determined by the 4 step
-     * algorithm that follows.
-     * Let C be the class or interface represented by this {@code Class} object:
-     * <ol>
-     * <li> A union of methods is composed of:
-     *   <ol type="a">
-     *   <li> C's declared public instance and static methods as returned by
-     *        {@link #getDeclaredMethods()} and filtered to include only public
-     *        methods that match given {@code name} and {@code parameterTypes}</li>
-     *   <li> If C is a class other than {@code Object}, then include the result
-     *        of invoking this algorithm recursively on the superclass of C.</li>
-     *   <li> Include the results of invoking this algorithm recursively on all
-     *        direct superinterfaces of C, but include only instance methods.</li>
-     *   </ol></li>
-     * <li> This union is partitioned into subsets of methods with same
-     *      return type (the selection of methods from step 1 also guarantees that
-     *      they have the same method name and parameter types).</li>
-     * <li> Within each such subset only the most specific methods are selected.
-     *      Let method M be a method from a set of methods with same VM
-     *      signature (return type, name, parameter types).
-     *      M is most specific if there is no such method N != M from the same
-     *      set, such that N is more specific than M. N is more specific than M
-     *      if:
-     *   <ol type="a">
-     *   <li> N is declared by a class and M is declared by an interface; or</li>
-     *   <li> N and M are both declared by classes or both by interfaces and
-     *        N's declaring type is the same as or a subtype of M's declaring type
-     *        (clearly, if M's and N's declaring types are the same type, then
-     *        M and N are the same method).</li>
-     *   </ol></li>
-     * <li> The result of this algorithm is chosen arbitrarily from the methods
-     *      with most specific return type among all selected methods from step 3.
-     *      Let R be a return type of a method M from the set of all selected methods
-     *      from step 3. M is a method with most specific return type if there is
-     *      no such method N != M from the same set, having return type S != R,
-     *      such that S is a subtype of R as determined by
-     *      R.class.{@link #isAssignableFrom}(S.class).
-     * </ol>
-     *
-     * @apiNote There may be more than one method with matching name and
-     * parameter types in a class because while the Java language forbids a
-     * class to declare multiple methods with the same signature but different
-     * return types, the Java virtual machine does not.  This
-     * increased flexibility in the virtual machine can be used to
-     * implement various language features.  For example, covariant
-     * returns can be implemented with {@linkplain
-     * Method#isBridge bridge methods}; the bridge
-     * method and the overriding method would have the same
-     * signature but different return types. This method would return the
-     * overriding method as it would have a more specific return type.
-     *
-     * @param name the name of the method
-     * @param parameterTypes the list of parameters
-     * @return the {@code Method} object that matches the specified
-     *         {@code name} and {@code parameterTypes}
-     * @throws NoSuchMethodException if a matching method is not found
-     *         or if the name is "&lt;init&gt;"or "&lt;clinit&gt;".
-     * @throws NullPointerException if {@code name} is {@code null}
-     * @throws SecurityException
-     *         If a security manager, <i>s</i>, is present and
-     *         the caller's class loader is not the same as or an
-     *         ancestor of the class loader for the current class and
-     *         invocation of {@link SecurityManager#checkPackageAccess
-     *         s.checkPackageAccess()} denies access to the package
-     *         of this class.
-     *
-     * @jls 8.2 Class Members
-     * @jls 8.4 Method Declarations
-     * @since 1.1
+     * 获取指定的成员方法
      */
     @CallerSensitive
     public Method getMethod(String name, Class<?>... parameterTypes)
@@ -2111,33 +1493,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns a {@code Constructor} object that reflects the specified
-     * public constructor of the class represented by this {@code Class}
-     * object. The {@code parameterTypes} parameter is an array of
-     * {@code Class} objects that identify the constructor's formal
-     * parameter types, in declared order.
-     *
-     * If this {@code Class} object represents an inner class
-     * declared in a non-static context, the formal parameter types
-     * include the explicit enclosing instance as the first parameter.
-     *
-     * <p> The constructor to reflect is the public constructor of the class
-     * represented by this {@code Class} object whose formal parameter
-     * types match those specified by {@code parameterTypes}.
-     *
-     * @param parameterTypes the parameter array
-     * @return the {@code Constructor} object of the public constructor that
-     *         matches the specified {@code parameterTypes}
-     * @throws NoSuchMethodException if a matching method is not found.
-     * @throws SecurityException
-     *         If a security manager, <i>s</i>, is present and
-     *         the caller's class loader is not the same as or an
-     *         ancestor of the class loader for the current class and
-     *         invocation of {@link SecurityManager#checkPackageAccess
-     *         s.checkPackageAccess()} denies access to the package
-     *         of this class.
-     *
-     * @since 1.1
+     * 返回当前Class对象表示的类的指定的公有构造子对象。
      */
     @CallerSensitive
     public Constructor<T> getConstructor(Class<?>... parameterTypes)
@@ -2311,42 +1667,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
-     * Returns an array of {@code Constructor} objects reflecting all the
-     * constructors declared by the class represented by this
-     * {@code Class} object. These are public, protected, default
-     * (package) access, and private constructors.  The elements in the array
-     * returned are not sorted and are not in any particular order.  If the
-     * class has a default constructor, it is included in the returned array.
-     * This method returns an array of length 0 if this {@code Class}
-     * object represents an interface, a primitive type, an array class, or
-     * void.
-     *
-     * <p> See <em>The Java Language Specification</em>, section 8.2.
-     *
-     * @return  the array of {@code Constructor} objects representing all the
-     *          declared constructors of this class
-     * @throws  SecurityException
-     *          If a security manager, <i>s</i>, is present and any of the
-     *          following conditions is met:
-     *
-     *          <ul>
-     *
-     *          <li> the caller's class loader is not the same as the
-     *          class loader of this class and invocation of
-     *          {@link SecurityManager#checkPermission
-     *          s.checkPermission} method with
-     *          {@code RuntimePermission("accessDeclaredMembers")}
-     *          denies access to the declared constructors within this class
-     *
-     *          <li> the caller's class loader is not the same as or an
-     *          ancestor of the class loader for the current class and
-     *          invocation of {@link SecurityManager#checkPackageAccess
-     *          s.checkPackageAccess()} denies access to the package
-     *          of this class
-     *
-     *          </ul>
-     *
-     * @since 1.1
+     * 返回当前Class对象表示的类的所有已声明的构造子对象数组。
      */
     @CallerSensitive
     public Constructor<?>[] getDeclaredConstructors() throws SecurityException {
@@ -2503,42 +1824,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * Returns a {@code Constructor} object that reflects the specified
-     * constructor of the class or interface represented by this
-     * {@code Class} object.  The {@code parameterTypes} parameter is
-     * an array of {@code Class} objects that identify the constructor's
-     * formal parameter types, in declared order.
-     *
-     * If this {@code Class} object represents an inner class
-     * declared in a non-static context, the formal parameter types
-     * include the explicit enclosing instance as the first parameter.
-     *
-     * @param parameterTypes the parameter array
-     * @return  The {@code Constructor} object for the constructor with the
-     *          specified parameter list
-     * @throws  NoSuchMethodException if a matching method is not found.
-     * @throws  SecurityException
-     *          If a security manager, <i>s</i>, is present and any of the
-     *          following conditions is met:
-     *
-     *          <ul>
-     *
-     *          <li> the caller's class loader is not the same as the
-     *          class loader of this class and invocation of
-     *          {@link SecurityManager#checkPermission
-     *          s.checkPermission} method with
-     *          {@code RuntimePermission("accessDeclaredMembers")}
-     *          denies access to the declared constructor
-     *
-     *          <li> the caller's class loader is not the same as or an
-     *          ancestor of the class loader for the current class and
-     *          invocation of {@link SecurityManager#checkPackageAccess
-     *          s.checkPackageAccess()} denies access to the package
-     *          of this class
-     *
-     *          </ul>
-     *
-     * @since 1.1
+     * 返回当前Class对象表示的类的指定已声明的一个构造子对象。
      */
     @CallerSensitive
     public Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
@@ -3489,12 +2775,7 @@ public final class Class<T> implements java.io.Serializable,
     private static native boolean desiredAssertionStatus0(Class<?> clazz);
 
     /**
-     * Returns true if and only if this class was declared as an enum in the
-     * source code.
-     *
-     * @return true if and only if this class was declared as an enum in the
-     *     source code
-     * @since 1.5
+     * 判断该类是否是枚举类
      */
     public boolean isEnum() {
         // An enum must both directly extend java.lang.Enum and have
@@ -3652,9 +2933,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     /**
-     * {@inheritDoc}
-     * @throws NullPointerException {@inheritDoc}
-     * @since 1.5
+     * 判断指定类型的注解是否存在
      */
     @Override
     public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
