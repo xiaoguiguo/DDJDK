@@ -1,7 +1,29 @@
+/*
+ * Copyright (c) 2003, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package sun.reflect.generics.tree;
 
-/**
- * 通用签名的抽象语法树层次结构的根
- */
-public interface Tree {
-}
+/** Root of the abstract syntax tree hierarchy for generic signatures */
+public interface Tree{}

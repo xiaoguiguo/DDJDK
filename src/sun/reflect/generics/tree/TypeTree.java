@@ -1,14 +1,40 @@
+/*
+ * Copyright (c) 2003, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package sun.reflect.generics.tree;
 
 import sun.reflect.generics.visitor.TypeTreeVisitor;
 
-/**
- * 在通用签名 AST 中表示类型表达式的所有节点的通用超类型。
+/** Common supertype for all nodes that represent type expressions in
+ * the generic signature AST.
  */
 public interface TypeTree extends Tree {
-
     /**
-     * 访问者模式的接受方法。
+     * Accept method for the visitor pattern.
+     * @param v a {@code TypeTreeVisitor} that will process this
+     * tree
      */
     void accept(TypeTreeVisitor<?> v);
 }

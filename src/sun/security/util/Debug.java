@@ -1,21 +1,71 @@
+/*
+ * Copyright (c) 1998, 2017, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
+
 package sun.security.util;
 
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.Locale;
+import sun.security.action.GetPropertyAction;
+
 /**
- * @className: Debug
- * @author: doudou
- * @datetime: 2021/11/4
- * @description: 用于调试的实用程序类。
+ * A utility class for debugging.
+ *
+ * @author Roland Schemers
  */
 public class Debug {
 
     private String prefix;
+
     private static String args;
 
     static {
-        // TODO
+        args = GetPropertyAction.privilegedGetProperty("java.security.debug");
+
+        String args2 = GetPropertyAction
+                .privilegedGetProperty("java.security.auth.debug");
+
+        if (args == null) {
+            args = args2;
+        } else {
+            if (args2 != null)
+               args = args + "," + args2;
+        }
+
+        if (args != null) {
+            args = marshal(args);
+            if (args.equals("help")) {
+                Help();
+            }
+        }
     }
 
-    public static void Help() {
+    public static void Help()
+    {
         System.err.println();
         System.err.println("all           turn on all debugging");
         System.err.println("access        print all checkPermission results");
@@ -75,11 +125,23 @@ public class Debug {
         System.exit(0);
     }
 
-    public static Debug getInstance(String option) {
+
+    /**
+     * Get a Debug object corresponding to whether or not the given
+     * option is set. Set the prefix to be the same as option.
+     */
+
+    public static Debug getInstance(String option)
+    {
         return getInstance(option, option);
     }
 
-    public static Debug getInstance(String option, String prefix) {
+    /**
+     * Get a Debug object corresponding to whether or not the given
+     * option is set. Set the prefix to be prefix.
+     */
+    public static Debug getInstance(String option, String prefix)
+    {
         if (isOn(option)) {
             Debug d = new Debug();
             d.prefix = prefix;
@@ -89,15 +151,189 @@ public class Debug {
         }
     }
 
-    public static boolean isOn(String option) {
-        if (args == null) {
+    /**
+     * True if the system property "security.debug" contains the
+     * string "option".
+     */
+    public static boolean isOn(String option)
+    {
+        if (args == null)
             return false;
-        } else {
-            if (args.indexOf("all") != -1) {
+        else {
+            if (args.indexOf("all") != -1)
                 return true;
-            } else {
+            else
                 return (args.indexOf(option) != -1);
-            }
         }
     }
+
+    /**
+     * Check if verbose messages is enabled for extra debugging.
+     */
+    public static boolean isVerbose() {
+        return isOn("verbose");
+    }
+
+    /**
+     * print a message to stderr that is prefixed with the prefix
+     * created from the call to getInstance.
+     */
+
+    public void println(String message)
+    {
+        System.err.println(prefix + ": "+message);
+    }
+
+    /**
+     * print a message to stderr that is prefixed with the prefix
+     * created from the call to getInstance and obj.
+     */
+    public void println(Object obj, String message)
+    {
+        System.err.println(prefix + " [" + obj.getClass().getSimpleName() +
+                "@" + System.identityHashCode(obj) + "]: "+message);
+    }
+
+    /**
+     * print a blank line to stderr that is prefixed with the prefix.
+     */
+
+    public void println()
+    {
+        System.err.println(prefix + ":");
+    }
+
+    /**
+     * print a message to stderr that is prefixed with the prefix.
+     */
+
+    public static void println(String prefix, String message)
+    {
+        System.err.println(prefix + ": "+message);
+    }
+
+    /**
+     * PrintStream for debug methods. Currently only System.err is supported.
+     */
+    public PrintStream getPrintStream() {
+        return System.err;
+    }
+
+    /**
+     * return a hexadecimal printed representation of the specified
+     * BigInteger object. the value is formatted to fit on lines of
+     * at least 75 characters, with embedded newlines. Words are
+     * separated for readability, with eight words (32 bytes) per line.
+     */
+    public static String toHexString(BigInteger b) {
+        String hexValue = b.toString(16);
+        StringBuilder sb = new StringBuilder(hexValue.length()*2);
+
+        if (hexValue.startsWith("-")) {
+            sb.append("   -");
+            hexValue = hexValue.substring(1);
+        } else {
+            sb.append("    ");     // four spaces
+        }
+        if ((hexValue.length()%2) != 0) {
+            // add back the leading 0
+            hexValue = "0" + hexValue;
+        }
+        int i=0;
+        while (i < hexValue.length()) {
+            // one byte at a time
+            sb.append(hexValue.substring(i, i + 2));
+            i+=2;
+            if (i!= hexValue.length()) {
+                if ((i%64) == 0) {
+                    sb.append("\n    ");     // line after eight words
+                } else if (i%8 == 0) {
+                    sb.append(" ");     // space between words
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * change a string into lower case except permission classes and URLs.
+     */
+    private static String marshal(String args) {
+        if (args != null) {
+            StringBuilder target = new StringBuilder();
+            StringBuffer source = new StringBuffer(args);
+
+            // obtain the "permission=<classname>" options
+            // the syntax of classname: IDENTIFIER.IDENTIFIER
+            // the regular express to match a class name:
+            // "[a-zA-Z_$][a-zA-Z0-9_$]*([.][a-zA-Z_$][a-zA-Z0-9_$]*)*"
+            String keyReg = "[Pp][Ee][Rr][Mm][Ii][Ss][Ss][Ii][Oo][Nn]=";
+            String keyStr = "permission=";
+            String reg = keyReg +
+                "[a-zA-Z_$][a-zA-Z0-9_$]*([.][a-zA-Z_$][a-zA-Z0-9_$]*)*";
+            Pattern pattern = Pattern.compile(reg);
+            Matcher matcher = pattern.matcher(source);
+            StringBuffer left = new StringBuffer();
+            while (matcher.find()) {
+                String matched = matcher.group();
+                target.append(matched.replaceFirst(keyReg, keyStr));
+                target.append("  ");
+
+                // delete the matched sequence
+                matcher.appendReplacement(left, "");
+            }
+            matcher.appendTail(left);
+            source = left;
+
+            // obtain the "codebase=<URL>" options
+            // the syntax of URL is too flexible, and here assumes that the
+            // URL contains no space, comma(','), and semicolon(';'). That
+            // also means those characters also could be used as separator
+            // after codebase option.
+            // However, the assumption is incorrect in some special situation
+            // when the URL contains comma or semicolon
+            keyReg = "[Cc][Oo][Dd][Ee][Bb][Aa][Ss][Ee]=";
+            keyStr = "codebase=";
+            reg = keyReg + "[^, ;]*";
+            pattern = Pattern.compile(reg);
+            matcher = pattern.matcher(source);
+            left = new StringBuffer();
+            while (matcher.find()) {
+                String matched = matcher.group();
+                target.append(matched.replaceFirst(keyReg, keyStr));
+                target.append("  ");
+
+                // delete the matched sequence
+                matcher.appendReplacement(left, "");
+            }
+            matcher.appendTail(left);
+            source = left;
+
+            // convert the rest to lower-case characters
+            target.append(source.toString().toLowerCase(Locale.ENGLISH));
+
+            return target.toString();
+        }
+
+        return null;
+    }
+
+    private static final char[] hexDigits = "0123456789abcdef".toCharArray();
+
+    public static String toString(byte[] b) {
+        if (b == null) {
+            return "(null)";
+        }
+        StringBuilder sb = new StringBuilder(b.length * 3);
+        for (int i = 0; i < b.length; i++) {
+            int k = b[i] & 0xff;
+            if (i != 0) {
+                sb.append(':');
+            }
+            sb.append(hexDigits[k >>> 4]);
+            sb.append(hexDigits[k & 0xf]);
+        }
+        return sb.toString();
+    }
+
 }
