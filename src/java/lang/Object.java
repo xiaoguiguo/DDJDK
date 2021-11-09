@@ -1,50 +1,33 @@
-/*
- * Copyright (c) 1994, 2017, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
 package java.lang;
 
 import jdk.internal.HotSpotIntrinsicCandidate;
 
 /**
- * Class {@code Object} is the root of the class hierarchy.
- * Every class has {@code Object} as a superclass. All objects,
- * including arrays, implement the methods of this class.
- *
- * @author  unascribed
- * @see     Class
- * @since   1.0
+ * Object 是 Java 类库中的一个特殊类，也是所有类的父类。也就是说，Java 允许把任何类型的对象赋给 Object 类型的变量。
+ * 当一个类被定义后，如果没有指定继承的父类，那么默认父类就是 Object 类
  */
 public class Object {
 
+    /**
+     * 本地方法的实现是由其他语言编写并保存在动态连接库中，因而在java类中不需要方法实现。registerNatives本质上就是一个本地方法，
+     * 但这又是一个有别于一般本地方法的本地方法，从方法名我们可以猜测该方法应该是用来注册本地方法的。
+     * 事实上，上述代码的功能就是先定义了registerNatives()方法，然后当该类被加载的时候，调用该方法完成对该类中本地方法的注册。
+     *
+     * 一个Java程序要想调用一个本地方法，需要执行两个步骤：
+     *
+     * （1）通过System.loadLibrary()将包含本地方法实现的动态文件加载进内存；
+     * （2）当Java程序需要调用本地方法时，虚拟机在加载的动态文件中定位并链接该本地方法，从而得以执行本地方法。
+     *
+     * registerNatives()方法的作用就是取代第二步，让程序主动将本地方法链接到调用方，当Java程序需要调用本地方法时就可以直接调用，
+     * 而不需要虚拟机再去定位并链接。
+     */
     private static native void registerNatives();
     static {
         registerNatives();
     }
 
     /**
-     * Constructs a new object.
+     * 构造方法
      */
     @HotSpotIntrinsicCandidate
     public Object() {}
@@ -72,38 +55,19 @@ public class Object {
     public final native Class<?> getClass();
 
     /**
-     * Returns a hash code value for the object. This method is
-     * supported for the benefit of hash tables such as those provided by
-     * {@link java.util.HashMap}.
-     * <p>
-     * The general contract of {@code hashCode} is:
-     * <ul>
-     * <li>Whenever it is invoked on the same object more than once during
-     *     an execution of a Java application, the {@code hashCode} method
-     *     must consistently return the same integer, provided no information
-     *     used in {@code equals} comparisons on the object is modified.
-     *     This integer need not remain consistent from one execution of an
-     *     application to another execution of the same application.
-     * <li>If two objects are equal according to the {@code equals(Object)}
-     *     method, then calling the {@code hashCode} method on each of
-     *     the two objects must produce the same integer result.
-     * <li>It is <em>not</em> required that if two objects are unequal
-     *     according to the {@link Object#equals(Object)}
-     *     method, then calling the {@code hashCode} method on each of the
-     *     two objects must produce distinct integer results.  However, the
-     *     programmer should be aware that producing distinct integer results
-     *     for unequal objects may improve the performance of hash tables.
-     * </ul>
-     * <p>
-     * As much as is reasonably practical, the hashCode method defined
-     * by class {@code Object} does return distinct integers for
-     * distinct objects. (The hashCode may or may not be implemented
-     * as some function of an object's memory address at some point
-     * in time.)
+     * 返回对象的哈希码值。 支持此方法是为了有利于散列表，例如 {@link java.util.HashMap} 提供的散列表。
      *
-     * @return  a hash code value for this object.
-     * @see     Object#equals(Object)
-     * @see     System#identityHashCode
+     * 1.在一个Java应用运行期间,只要一个对象的{@code equals}方法所用到的信息没有被修改,
+     *  那么对这同一个对象调用多次{@code hashCode}方法,都必须返回同一个整数.
+     *  在同一个应用程序的多次执行中,每次执行所返回的整数可以不一样.
+     * 2.如果两个对象根据{@code equals(Object)}方法进行比较结果是相等的,那么调用这两个对象的
+     *  {@code hashCode}方法必须返回同样的结果.
+     * 3.如果两个对象根据{@link java.lang.Object#equals(java.lang.Object)}进行比较是不相等的,
+     *  那么并<em>不</em>要求调用这两个对象的{@code hashCode}方法必须返回不同的整数结果.
+     *  但是程序员应该了解到,给不相等的对象产生不同的整数结果,可能提高散列表(hash tables)的性能.
+     *
+     * 简要的说,在一个应用的一次运行期间,equals为true的对象hashCode必须相同,而equals为false的对象hashCode未必不同.
+     * 但是应当让不同的对象返回不同的hashCode.
      */
     @HotSpotIntrinsicCandidate
     public native int hashCode();

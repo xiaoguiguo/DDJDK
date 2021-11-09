@@ -190,6 +190,11 @@ final class StringLatin1 {
         return len1 - len2;
     }
 
+    /**
+     * 通过对每个字节乘以31来计算hashcode
+     * 为什么要乘以31这个素数？
+     * 参考：https://blog.csdn.net/qq_21251983/article/details/52164403
+     */
     public static int hashCode(byte[] value) {
         int h = 0;
         for (byte v : value) {
