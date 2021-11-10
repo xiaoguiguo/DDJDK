@@ -14,54 +14,29 @@ import jdk.internal.HotSpotIntrinsicCandidate;
 public final
 class Character implements java.io.Serializable, Comparable<Character> {
     /**
-     * The minimum radix available for conversion to and from strings.
-     * The constant value of this field is the smallest value permitted
-     * for the radix argument in radix-conversion methods such as the
-     * {@code digit} method, the {@code forDigit} method, and the
-     * {@code toString} method of class {@code Integer}.
-     *
-     * @see     Character#digit(char, int)
-     * @see     Character#forDigit(int, int)
-     * @see     Integer#toString(int, int)
-     * @see     Integer#valueOf(String)
+     * 字符串转数字的合法字符串分为2部分，1）-或+符号位； 2）0到9，a到z;
+     * 符号位不参与转换
+     * 基数必须大于1，因为如果基数等于1，那么就会无意义，陷入无限循环。
+     * Character. MIN_RADIX = 2， Character.MAX_RADIX = 36
+     * 所以，0到9一共10位，a到z一共26位，所以一共36位。
      */
     public static final int MIN_RADIX = 2;
 
-    /**
-     * The maximum radix available for conversion to and from strings.
-     * The constant value of this field is the largest value permitted
-     * for the radix argument in radix-conversion methods such as the
-     * {@code digit} method, the {@code forDigit} method, and the
-     * {@code toString} method of class {@code Integer}.
-     *
-     * @see     Character#digit(char, int)
-     * @see     Character#forDigit(int, int)
-     * @see     Integer#toString(int, int)
-     * @see     Integer#valueOf(String)
-     */
     public static final int MAX_RADIX = 36;
 
     /**
-     * The constant value of this field is the smallest value of type
-     * {@code char}, {@code '\u005Cu0000'}.
-     *
-     * @since   1.0.2
+     * char 的最小值0
      */
     public static final char MIN_VALUE = '\u0000';
 
     /**
-     * The constant value of this field is the largest value of type
-     * {@code char}, {@code '\u005CuFFFF'}.
+     * char 的最大值 65535
      *
-     * @since   1.0.2
      */
     public static final char MAX_VALUE = '\uFFFF';
 
     /**
-     * The {@code Class} instance representing the primitive type
-     * {@code char}.
-     *
-     * @since   1.1
+     * 基本类型char 的包装类
      */
     @SuppressWarnings("unchecked")
     public static final Class<Character> TYPE = (Class<Character>) Class.getPrimitiveClass("char");
@@ -494,13 +469,8 @@ class Character implements java.io.Serializable, Comparable<Character> {
 
 
     /**
-     * Instances of this class represent particular subsets of the Unicode
-     * character set.  The only family of subsets defined in the
-     * {@code Character} class is {@link UnicodeBlock}.
-     * Other portions of the Java API may define other subsets for their
-     * own purposes.
-     *
-     * @since 1.2
+     * 此类的实例表示 Unicode 字符集的特定子集。 {Character} 类中定义的唯一子集系列是 {UnicodeBlock}。
+     * Java API 的其他部分可能会为它们自己的目的定义其他子集。
      */
     public static class Subset  {
 

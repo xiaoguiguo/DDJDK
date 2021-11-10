@@ -29,21 +29,7 @@ import jdk.internal.math.FloatingDecimal;
 import jdk.internal.HotSpotIntrinsicCandidate;
 
 /**
- * The {@code Float} class wraps a value of primitive type
- * {@code float} in an object. An object of type
- * {@code Float} contains a single field whose type is
- * {@code float}.
- *
- * <p>In addition, this class provides several methods for converting a
- * {@code float} to a {@code String} and a
- * {@code String} to a {@code float}, as well as other
- * constants and methods useful when dealing with a
- * {@code float}.
- *
- * @author  Lee Boynton
- * @author  Arthur van Hoff
- * @author  Joseph D. Darcy
- * @since 1.0
+ * 基本类型float的包装类
  */
 public final class Float extends Number implements Comparable<Float> {
     /**
