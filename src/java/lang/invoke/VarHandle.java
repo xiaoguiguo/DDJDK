@@ -40,401 +40,30 @@ import static java.lang.invoke.MethodHandleStatics.UNSAFE;
 import static java.lang.invoke.MethodHandleStatics.newInternalError;
 
 /**
- * A VarHandle is a dynamically strongly typed reference to a variable, or to a
- * parametrically-defined family of variables, including static fields,
- * non-static fields, array elements, or components of an off-heap data
- * structure.  Access to such variables is supported under various
- * <em>access modes</em>, including plain read/write access, volatile
- * read/write access, and compare-and-set.
+ * VarHandle是对变量或参数定义的变量系列的动态强类型引用，包括静态字段，非静态字段，数组元素或堆外数据结构的组件。
+ * 在各种访问模式下都支持访问这些变量，包括普通读/写访问，易失性读/写访问以及比较和设置。
+ * VarHandles是不可变的，没有可见状态。
  *
- * <p>VarHandles are immutable and have no visible state.  VarHandles cannot be
- * subclassed by the user.
+ * 访问模式控制原子性和一致性属性。 普通读取（ get ）和写入（ set ）访问保证仅对于引用和最多32位的原始值是按位原子的，
+ * 并且对于除执行线程之外的线程没有强加可观察的排序约束。 对于访问同一变量， 不透明操作是按位原子和相干有序的。
+ * 除了遵守不透明属性之外，在匹配释放模式写入及其先前的访问之后，还会对获取模式读取及其后续访问进行排序。
+ * 除了遵守Acquire和Release属性之外，所有Volatile操作都是相互完全排序的。
  *
- * <p>A VarHandle has:
- * <ul>
- * <li>a {@link #varType variable type} T, the type of every variable referenced
- * by this VarHandle; and
- * <li>a list of {@link #coordinateTypes coordinate types}
- * {@code CT1, CT2, ..., CTn}, the types of <em>coordinate expressions</em> that
- * jointly locate a variable referenced by this VarHandle.
- * </ul>
- * Variable and coordinate types may be primitive or reference, and are
- * represented by {@code Class} objects.  The list of coordinate types may be
- * empty.
- *
- * <p>Factory methods that produce or {@link MethodHandles.Lookup
- * lookup} VarHandle instances document the supported variable type and the list
- * of coordinate types.
- *
- * <p>Each access mode is associated with one <em>access mode method</em>, a
- * <a href="MethodHandle.html#sigpoly">signature polymorphic</a> method named
- * for the access mode.  When an access mode method is invoked on a VarHandle
- * instance, the initial arguments to the invocation are coordinate expressions
- * that indicate in precisely which object the variable is to be accessed.
- * Trailing arguments to the invocation represent values of importance to the
- * access mode.  For example, the various compare-and-set or compare-and-exchange
- * access modes require two trailing arguments for the variable's expected value
- * and new value.
- *
- * <p>The arity and types of arguments to the invocation of an access mode
- * method are not checked statically.  Instead, each access mode method
- * specifies an {@link #accessModeType(AccessMode) access mode type},
- * represented as an instance of {@link MethodType}, that serves as a kind of
- * method signature against which the arguments are checked dynamically.  An
- * access mode type gives formal parameter types in terms of the coordinate
- * types of a VarHandle instance and the types for values of importance to the
- * access mode.  An access mode type also gives a return type, often in terms of
- * the variable type of a VarHandle instance.  When an access mode method is
- * invoked on a VarHandle instance, the symbolic type descriptor at the
- * call site, the run time types of arguments to the invocation, and the run
- * time type of the return value, must <a href="#invoke">match</a> the types
- * given in the access mode type.  A runtime exception will be thrown if the
- * match fails.
- *
- * For example, the access mode method {@link #compareAndSet} specifies that if
- * its receiver is a VarHandle instance with coordinate types
- * {@code CT1, ..., CTn} and variable type {@code T}, then its access mode type
- * is {@code (CT1 c1, ..., CTn cn, T expectedValue, T newValue)boolean}.
- * Suppose that a VarHandle instance can access array elements, and that its
- * coordinate types are {@code String[]} and {@code int} while its variable type
- * is {@code String}.  The access mode type for {@code compareAndSet} on this
- * VarHandle instance would be
- * {@code (String[] c1, int c2, String expectedValue, String newValue)boolean}.
- * Such a VarHandle instance may be produced by the
- * {@link MethodHandles#arrayElementVarHandle(Class) array factory method} and
- * access array elements as follows:
- * <pre> {@code
- * String[] sa = ...
- * VarHandle avh = MethodHandles.arrayElementVarHandle(String[].class);
- * boolean r = avh.compareAndSet(sa, 10, "expected", "new");
- * }</pre>
- *
- * <p>Access modes control atomicity and consistency properties.
- * <em>Plain</em> read ({@code get}) and write ({@code set})
- * accesses are guaranteed to be bitwise atomic only for references
- * and for primitive values of at most 32 bits, and impose no observable
- * ordering constraints with respect to threads other than the
- * executing thread. <em>Opaque</em> operations are bitwise atomic and
- * coherently ordered with respect to accesses to the same variable.
- * In addition to obeying Opaque properties, <em>Acquire</em> mode
- * reads and their subsequent accesses are ordered after matching
- * <em>Release</em> mode writes and their previous accesses.  In
- * addition to obeying Acquire and Release properties, all
- * <em>Volatile</em> operations are totally ordered with respect to
- * each other.
- *
- * <p>Access modes are grouped into the following categories:
- * <ul>
- * <li>read access modes that get the value of a variable under specified
- * memory ordering effects.
- * The set of corresponding access mode methods belonging to this group
- * consists of the methods
- * {@link #get get},
- * {@link #getVolatile getVolatile},
- * {@link #getAcquire getAcquire},
- * {@link #getOpaque getOpaque}.
- * <li>write access modes that set the value of a variable under specified
- * memory ordering effects.
- * The set of corresponding access mode methods belonging to this group
- * consists of the methods
- * {@link #set set},
- * {@link #setVolatile setVolatile},
- * {@link #setRelease setRelease},
- * {@link #setOpaque setOpaque}.
- * <li>atomic update access modes that, for example, atomically compare and set
- * the value of a variable under specified memory ordering effects.
- * The set of corresponding access mode methods belonging to this group
- * consists of the methods
- * {@link #compareAndSet compareAndSet},
- * {@link #weakCompareAndSetPlain weakCompareAndSetPlain},
- * {@link #weakCompareAndSet weakCompareAndSet},
- * {@link #weakCompareAndSetAcquire weakCompareAndSetAcquire},
- * {@link #weakCompareAndSetRelease weakCompareAndSetRelease},
- * {@link #compareAndExchangeAcquire compareAndExchangeAcquire},
- * {@link #compareAndExchange compareAndExchange},
- * {@link #compareAndExchangeRelease compareAndExchangeRelease},
- * {@link #getAndSet getAndSet},
- * {@link #getAndSetAcquire getAndSetAcquire},
- * {@link #getAndSetRelease getAndSetRelease}.
- * <li>numeric atomic update access modes that, for example, atomically get and
- * set with addition the value of a variable under specified memory ordering
- * effects.
- * The set of corresponding access mode methods belonging to this group
- * consists of the methods
- * {@link #getAndAdd getAndAdd},
- * {@link #getAndAddAcquire getAndAddAcquire},
- * {@link #getAndAddRelease getAndAddRelease},
- * <li>bitwise atomic update access modes that, for example, atomically get and
- * bitwise OR the value of a variable under specified memory ordering
- * effects.
- * The set of corresponding access mode methods belonging to this group
- * consists of the methods
- * {@link #getAndBitwiseOr getAndBitwiseOr},
- * {@link #getAndBitwiseOrAcquire getAndBitwiseOrAcquire},
- * {@link #getAndBitwiseOrRelease getAndBitwiseOrRelease},
- * {@link #getAndBitwiseAnd getAndBitwiseAnd},
- * {@link #getAndBitwiseAndAcquire getAndBitwiseAndAcquire},
- * {@link #getAndBitwiseAndRelease getAndBitwiseAndRelease},
- * {@link #getAndBitwiseXor getAndBitwiseXor},
- * {@link #getAndBitwiseXorAcquire getAndBitwiseXorAcquire},
- * {@link #getAndBitwiseXorRelease getAndBitwiseXorRelease}.
- * </ul>
- *
- * <p>Factory methods that produce or {@link MethodHandles.Lookup
- * lookup} VarHandle instances document the set of access modes that are
- * supported, which may also include documenting restrictions based on the
- * variable type and whether a variable is read-only.  If an access mode is not
- * supported then the corresponding access mode method will on invocation throw
- * an {@code UnsupportedOperationException}.  Factory methods should document
- * any additional undeclared exceptions that may be thrown by access mode
- * methods.
- * The {@link #get get} access mode is supported for all
- * VarHandle instances and the corresponding method never throws
- * {@code UnsupportedOperationException}.
- * If a VarHandle references a read-only variable (for example a {@code final}
- * field) then write, atomic update, numeric atomic update, and bitwise atomic
- * update access modes are not supported and corresponding methods throw
- * {@code UnsupportedOperationException}.
- * Read/write access modes (if supported), with the exception of
- * {@code get} and {@code set}, provide atomic access for
- * reference types and all primitive types.
- * Unless stated otherwise in the documentation of a factory method, the access
- * modes {@code get} and {@code set} (if supported) provide atomic access for
- * reference types and all primitives types, with the exception of {@code long}
- * and {@code double} on 32-bit platforms.
- *
- * <p>Access modes will override any memory ordering effects specified at
- * the declaration site of a variable.  For example, a VarHandle accessing
- * a field using the {@code get} access mode will access the field as
- * specified <em>by its access mode</em> even if that field is declared
- * {@code volatile}.  When mixed access is performed extreme care should be
- * taken since the Java Memory Model may permit surprising results.
- *
- * <p>In addition to supporting access to variables under various access modes,
- * a set of static methods, referred to as memory fence methods, is also
- * provided for fine-grained control of memory ordering.
- *
- * The Java Language Specification permits other threads to observe operations
- * as if they were executed in orders different than are apparent in program
- * source code, subject to constraints arising, for example, from the use of
- * locks, {@code volatile} fields or VarHandles.  The static methods,
- * {@link #fullFence fullFence}, {@link #acquireFence acquireFence},
- * {@link #releaseFence releaseFence}, {@link #loadLoadFence loadLoadFence} and
- * {@link #storeStoreFence storeStoreFence}, can also be used to impose
- * constraints.  Their specifications, as is the case for certain access modes,
- * are phrased in terms of the lack of "reorderings" -- observable ordering
- * effects that might otherwise occur if the fence was not present.  More
- * precise phrasing of the specification of access mode methods and memory fence
- * methods may accompany future updates of the Java Language Specification.
- *
- * <h1>Compiling invocation of access mode methods</h1>
- * A Java method call expression naming an access mode method can invoke a
- * VarHandle from Java source code.  From the viewpoint of source code, these
- * methods can take any arguments and their polymorphic result (if expressed)
- * can be cast to any return type.  Formally this is accomplished by giving the
- * access mode methods variable arity {@code Object} arguments and
- * {@code Object} return types (if the return type is polymorphic), but they
- * have an additional quality called <em>signature polymorphism</em> which
- * connects this freedom of invocation directly to the JVM execution stack.
- * <p>
- * As is usual with virtual methods, source-level calls to access mode methods
- * compile to an {@code invokevirtual} instruction.  More unusually, the
- * compiler must record the actual argument types, and may not perform method
- * invocation conversions on the arguments.  Instead, it must generate
- * instructions to push them on the stack according to their own unconverted
- * types.  The VarHandle object itself will be pushed on the stack before the
- * arguments.  The compiler then generates an {@code invokevirtual} instruction
- * that invokes the access mode method with a symbolic type descriptor which
- * describes the argument and return types.
- * <p>
- * To issue a complete symbolic type descriptor, the compiler must also
- * determine the return type (if polymorphic).  This is based on a cast on the
- * method invocation expression, if there is one, or else {@code Object} if the
- * invocation is an expression, or else {@code void} if the invocation is a
- * statement.  The cast may be to a primitive type (but not {@code void}).
- * <p>
- * As a corner case, an uncasted {@code null} argument is given a symbolic type
- * descriptor of {@code java.lang.Void}.  The ambiguity with the type
- * {@code Void} is harmless, since there are no references of type {@code Void}
- * except the null reference.
- *
- *
- * <h1><a id="invoke">Performing invocation of access mode methods</a></h1>
- * The first time an {@code invokevirtual} instruction is executed it is linked
- * by symbolically resolving the names in the instruction and verifying that
- * the method call is statically legal.  This also holds for calls to access mode
- * methods.  In this case, the symbolic type descriptor emitted by the compiler
- * is checked for correct syntax, and names it contains are resolved.  Thus, an
- * {@code invokevirtual} instruction which invokes an access mode method will
- * always link, as long as the symbolic type descriptor is syntactically
- * well-formed and the types exist.
- * <p>
- * When the {@code invokevirtual} is executed after linking, the receiving
- * VarHandle's access mode type is first checked by the JVM to ensure that it
- * matches the symbolic type descriptor.  If the type
- * match fails, it means that the access mode method which the caller is
- * invoking is not present on the individual VarHandle being invoked.
- *
- * <p>
- * Invocation of an access mode method behaves as if an invocation of
- * {@link MethodHandle#invoke}, where the receiving method handle accepts the
- * VarHandle instance as the leading argument.  More specifically, the
- * following, where {@code {access-mode}} corresponds to the access mode method
- * name:
- * <pre> {@code
- * VarHandle vh = ..
- * R r = (R) vh.{access-mode}(p1, p2, ..., pN);
- * }</pre>
- * behaves as if:
- * <pre> {@code
- * VarHandle vh = ..
- * VarHandle.AccessMode am = VarHandle.AccessMode.valueFromMethodName("{access-mode}");
- * MethodHandle mh = MethodHandles.varHandleExactInvoker(
- *                       am,
- *                       vh.accessModeType(am));
- *
- * R r = (R) mh.invoke(vh, p1, p2, ..., pN)
- * }</pre>
- * (modulo access mode methods do not declare throwing of {@code Throwable}).
- * This is equivalent to:
- * <pre> {@code
- * MethodHandle mh = MethodHandles.lookup().findVirtual(
- *                       VarHandle.class,
- *                       "{access-mode}",
- *                       MethodType.methodType(R, p1, p2, ..., pN));
- *
- * R r = (R) mh.invokeExact(vh, p1, p2, ..., pN)
- * }</pre>
- * where the desired method type is the symbolic type descriptor and a
- * {@link MethodHandle#invokeExact} is performed, since before invocation of the
- * target, the handle will apply reference casts as necessary and box, unbox, or
- * widen primitive values, as if by {@link MethodHandle#asType asType} (see also
- * {@link MethodHandles#varHandleInvoker}).
- *
- * More concisely, such behaviour is equivalent to:
- * <pre> {@code
- * VarHandle vh = ..
- * VarHandle.AccessMode am = VarHandle.AccessMode.valueFromMethodName("{access-mode}");
- * MethodHandle mh = vh.toMethodHandle(am);
- *
- * R r = (R) mh.invoke(p1, p2, ..., pN)
- * }</pre>
- * Where, in this case, the method handle is bound to the VarHandle instance.
- *
- *
- * <h1>Invocation checking</h1>
- * In typical programs, VarHandle access mode type matching will usually
- * succeed.  But if a match fails, the JVM will throw a
- * {@link WrongMethodTypeException}.
- * <p>
- * Thus, an access mode type mismatch which might show up as a linkage error
- * in a statically typed program can show up as a dynamic
- * {@code WrongMethodTypeException} in a program which uses VarHandles.
- * <p>
- * Because access mode types contain "live" {@code Class} objects, method type
- * matching takes into account both type names and class loaders.
- * Thus, even if a VarHandle {@code VH} is created in one class loader
- * {@code L1} and used in another {@code L2}, VarHandle access mode method
- * calls are type-safe, because the caller's symbolic type descriptor, as
- * resolved in {@code L2}, is matched against the original callee method's
- * symbolic type descriptor, as resolved in {@code L1}.  The resolution in
- * {@code L1} happens when {@code VH} is created and its access mode types are
- * assigned, while the resolution in {@code L2} happens when the
- * {@code invokevirtual} instruction is linked.
- * <p>
- * Apart from type descriptor checks, a VarHandles's capability to
- * access it's variables is unrestricted.
- * If a VarHandle is formed on a non-public variable by a class that has access
- * to that variable, the resulting VarHandle can be used in any place by any
- * caller who receives a reference to it.
- * <p>
- * Unlike with the Core Reflection API, where access is checked every time a
- * reflective method is invoked, VarHandle access checking is performed
- * <a href="MethodHandles.Lookup.html#access">when the VarHandle is
- * created</a>.
- * Thus, VarHandles to non-public variables, or to variables in non-public
- * classes, should generally be kept secret.  They should not be passed to
- * untrusted code unless their use from the untrusted code would be harmless.
- *
- *
- * <h1>VarHandle creation</h1>
- * Java code can create a VarHandle that directly accesses any field that is
- * accessible to that code.  This is done via a reflective, capability-based
- * API called {@link MethodHandles.Lookup
- * MethodHandles.Lookup}.
- * For example, a VarHandle for a non-static field can be obtained
- * from {@link MethodHandles.Lookup#findVarHandle
- * Lookup.findVarHandle}.
- * There is also a conversion method from Core Reflection API objects,
- * {@link MethodHandles.Lookup#unreflectVarHandle
- * Lookup.unreflectVarHandle}.
- * <p>
- * Access to protected field members is restricted to receivers only of the
- * accessing class, or one of its subclasses, and the accessing class must in
- * turn be a subclass (or package sibling) of the protected member's defining
- * class.  If a VarHandle refers to a protected non-static field of a declaring
- * class outside the current package, the receiver argument will be narrowed to
- * the type of the accessing class.
- *
- * <h1>Interoperation between VarHandles and the Core Reflection API</h1>
- * Using factory methods in the {@link MethodHandles.Lookup
- * Lookup} API, any field represented by a Core Reflection API object
- * can be converted to a behaviorally equivalent VarHandle.
- * For example, a reflective {@link java.lang.reflect.Field Field} can
- * be converted to a VarHandle using
- * {@link MethodHandles.Lookup#unreflectVarHandle
- * Lookup.unreflectVarHandle}.
- * The resulting VarHandles generally provide more direct and efficient
- * access to the underlying fields.
- * <p>
- * As a special case, when the Core Reflection API is used to view the
- * signature polymorphic access mode methods in this class, they appear as
- * ordinary non-polymorphic methods.  Their reflective appearance, as viewed by
- * {@link Class#getDeclaredMethod Class.getDeclaredMethod},
- * is unaffected by their special status in this API.
- * For example, {@link java.lang.reflect.Method#getModifiers
- * Method.getModifiers}
- * will report exactly those modifier bits required for any similarly
- * declared method, including in this case {@code native} and {@code varargs}
- * bits.
- * <p>
- * As with any reflected method, these methods (when reflected) may be invoked
- * directly via {@link java.lang.reflect.Method#invoke java.lang.reflect.Method.invoke},
- * via JNI, or indirectly via
- * {@link MethodHandles.Lookup#unreflect Lookup.unreflect}.
- * However, such reflective calls do not result in access mode method
- * invocations.  Such a call, if passed the required argument (a single one, of
- * type {@code Object[]}), will ignore the argument and will throw an
- * {@code UnsupportedOperationException}.
- * <p>
- * Since {@code invokevirtual} instructions can natively invoke VarHandle
- * access mode methods under any symbolic type descriptor, this reflective view
- * conflicts with the normal presentation of these methods via bytecodes.
- * Thus, these native methods, when reflectively viewed by
- * {@code Class.getDeclaredMethod}, may be regarded as placeholders only.
- * <p>
- * In order to obtain an invoker method for a particular access mode type,
- * use {@link MethodHandles#varHandleExactInvoker} or
- * {@link MethodHandles#varHandleInvoker}.  The
- * {@link MethodHandles.Lookup#findVirtual Lookup.findVirtual}
- * API is also able to return a method handle to call an access mode method for
- * any specified access mode type and is equivalent in behaviour to
- * {@link MethodHandles#varHandleInvoker}.
- *
- * <h1>Interoperation between VarHandles and Java generics</h1>
- * A VarHandle can be obtained for a variable, such as a field, which is
- * declared with Java generic types.  As with the Core Reflection API, the
- * VarHandle's variable type will be constructed from the erasure of the
- * source-level type.  When a VarHandle access mode method is invoked, the
- * types
- * of its arguments or the return value cast type may be generic types or type
- * instances.  If this occurs, the compiler will replace those types by their
- * erasures when it constructs the symbolic type descriptor for the
- * {@code invokevirtual} instruction.
- *
- * @see MethodHandle
- * @see MethodHandles
- * @see MethodType
+ * 访问模式分为以下几类：
+ *   1. 读取访问模式，获取指定内存排序效果下的变量值。
+ *          该组对应属于该组的访问模式的方法的组成的方法get ， getVolatile ， getAcquire ， getOpaque 。
+ *   2. 写入访问模式，在指定的内存排序效果下设置变量的值。
+ *          该组对应属于该组的访问模式的方法的组成的方法set ， setVolatile ， setRelease ， setOpaque 。
+ *   3. 原子更新访问模式，例如，在指定的内存排序效果下，原子地比较和设置变量的值。
+ *          该组对应属于该组的访问模式的方法的组成的方法compareAndSet ， weakCompareAndSetPlain ， weakCompareAndSet ，
+ *          weakCompareAndSetAcquire ， weakCompareAndSetRelease ， compareAndExchangeAcquire ， compareAndExchange ，
+ *          compareAndExchangeRelease ， getAndSet ， getAndSetAcquire ， getAndSetRelease 。
+ *   4. 数字原子更新访问模式，例如，通过在指定的内存排序效果下添加变量的值，以原子方式获取和设置。
+ *          该组的属于该组的相应的访问模式的方法由方法getAndAdd ， getAndAddAcquire ， getAndAddRelease ，
+ *   5. 按位原子更新访问模式，例如，在指定的内存排序效果下，以原子方式获取和按位OR变量的值。
+ *          该组对应属于该组的访问模式的方法的组成的方法getAndBitwiseOr ， getAndBitwiseOrAcquire ， getAndBitwiseOrRelease ，
+ *          getAndBitwiseAnd ， getAndBitwiseAndAcquire ， getAndBitwiseAndRelease ， getAndBitwiseXor ，
+ *          getAndBitwiseXorAcquire ， getAndBitwiseXorRelease 。
  * @since 9
  */
 public abstract class VarHandle {
@@ -451,29 +80,7 @@ public abstract class VarHandle {
     // Plain accessors
 
     /**
-     * Returns the value of a variable, with memory semantics of reading as
-     * if the variable was declared non-{@code volatile}.  Commonly referred to
-     * as plain read access.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code get}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET)} on this VarHandle.
-     *
-     * <p>This access mode is supported by all VarHandle instances and never
-     * throws {@code UnsupportedOperationException}.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the value of the
-     * variable
-     * , statically represented using {@code Object}.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 返回变量的值，读取的内存语义就像变量声明为非 volatile 。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -481,25 +88,7 @@ public abstract class VarHandle {
     Object get(Object... args);
 
     /**
-     * Sets the value of a variable to the {@code newValue}, with memory
-     * semantics of setting as if the variable was declared non-{@code volatile}
-     * and non-{@code final}.  Commonly referred to as plain write access.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)void}
-     *
-     * <p>The symbolic type descriptor at the call site of {@code set}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.SET)} on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 将变量的值设置为 newValue ，其内存语义设置为将变量声明为非 volatile final 。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -510,28 +99,7 @@ public abstract class VarHandle {
     // Volatile accessors
 
     /**
-     * Returns the value of a variable, with memory semantics of reading as if
-     * the variable was declared {@code volatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getVolatile}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_VOLATILE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the value of the
-     * variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 返回变量的值，读取的内存语义就像声明变量 volatile 。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -539,29 +107,7 @@ public abstract class VarHandle {
     Object getVolatile(Object... args);
 
     /**
-     * Sets the value of a variable to the {@code newValue}, with memory
-     * semantics of setting as if the variable was declared {@code volatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)void}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code setVolatile}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.SET_VOLATILE)} on this
-     * VarHandle.
-     *
-     * @apiNote
-     * Ignoring the many semantic differences from C and C++, this method has
-     * memory ordering effects compatible with {@code memory_order_seq_cst}.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 将变量的值设置为 newValue ，设置的内存语义就像声明变量 volatile 。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -570,28 +116,7 @@ public abstract class VarHandle {
 
 
     /**
-     * Returns the value of a variable, accessed in program order, but with no
-     * assurance of memory ordering effects with respect to other threads.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getOpaque}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_OPAQUE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the value of the
-     * variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 返回以程序顺序访问的变量的值，但不保证相对于其他线程的内存排序效果。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -599,26 +124,7 @@ public abstract class VarHandle {
     Object getOpaque(Object... args);
 
     /**
-     * Sets the value of a variable to the {@code newValue}, in program order,
-     * but with no assurance of memory ordering effects with respect to other
-     * threads.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)void}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code setOpaque}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.SET_OPAQUE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 按程序顺序将变量的值设置为 newValue ，但不保证相对于其他线程的内存排序效果。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -629,33 +135,7 @@ public abstract class VarHandle {
     // Lazy accessors
 
     /**
-     * Returns the value of a variable, and ensures that subsequent loads and
-     * stores are not reordered before this access.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @apiNote
-     * Ignoring the many semantic differences from C and C++, this method has
-     * memory ordering effects compatible with {@code memory_order_acquire}
-     * ordering.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the value of the
-     * variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 返回变量的值，并确保在此访问之前不会重新排序后续加载和存储。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -663,30 +143,7 @@ public abstract class VarHandle {
     Object getAcquire(Object... args);
 
     /**
-     * Sets the value of a variable to the {@code newValue}, and ensures that
-     * prior loads and stores are not reordered after this access.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)void}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code setRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.SET_RELEASE)} on this
-     * VarHandle.
-     *
-     * @apiNote
-     * Ignoring the many semantic differences from C and C++, this method has
-     * memory ordering effects compatible with {@code memory_order_release}
-     * ordering.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
+     * 将变量的值设置为 newValue ，并确保在此访问后不重新排序先前的加载和存储。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -697,32 +154,8 @@ public abstract class VarHandle {
     // Compare and set accessors
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #setVolatile} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)boolean}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * compareAndSet} must match the access mode type that is the result of
-     * calling {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_SET)} on
-     * this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return {@code true} if successful, otherwise {@code false} if the
-     * witness value was not the same as the {@code expectedValue}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 如果变量的当前值（称为见证值）{==} {expectedValue} 以内存语义访问，
+     * 则以 {#setVolatile} 的内存语义原子地将变量的值设置为 {newValue}。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -730,34 +163,8 @@ public abstract class VarHandle {
     boolean compareAndSet(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #setVolatile} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * compareAndExchange}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_EXCHANGE)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the witness value, which
-     * will be the same as the {@code expectedValue} if successful
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type is not
-     * compatible with the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type is compatible with the
-     * caller's symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 如果变量的当前值（称为见证值）== expectedValue（使用 getVolatile 的内存语义访问），
+     * 则使用 setVolatile 的内存语义原子地将变量的值设置为 newValue。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -765,34 +172,8 @@ public abstract class VarHandle {
     Object compareAndExchange(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #set} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * compareAndExchangeAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_EXCHANGE_ACQUIRE)} on
-     * this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the witness value, which
-     * will be the same as the {@code expectedValue} if successful
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #getAcquire(Object...)
+     * 如果变量的当前值（称为见证值）== expectedValue（使用 getAcquire 的内存语义访问），
+     * 则使用 set 的内存语义原子地将变量的值设置为 newValue。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -800,34 +181,8 @@ public abstract class VarHandle {
     Object compareAndExchangeAcquire(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #setRelease} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * compareAndExchangeRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.COMPARE_AND_EXCHANGE_RELEASE)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the witness value, which
-     * will be the same as the {@code expectedValue} if successful
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setRelease(Object...)
-     * @see #get(Object...)
+     * 如果变量的当前值（称为见证值）== expectedValue（使用 get 的内存语义访问），
+     * 则使用 setRelease 的内存语义原子地将变量的值设置为 newValue。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -837,36 +192,9 @@ public abstract class VarHandle {
     // Weak (spurious failures allowed)
 
     /**
-     * Possibly atomically sets the value of a variable to the {@code newValue}
-     * with the semantics of {@link #set} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>This operation may fail spuriously (typically, due to memory
-     * contention) even if the witness value does match the expected value.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)boolean}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * weakCompareAndSetPlain} must match the access mode type that is the result of
-     * calling {@code accessModeType(VarHandle.AccessMode.WEAK_COMPARE_AND_SET_PLAIN)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return {@code true} if successful, otherwise {@code false} if the
-     * witness value was not the same as the {@code expectedValue} or if this
-     * operation spuriously failed.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #get(Object...)
+     * 如果变量的当前值（称为见证值）== expectedValue（使用 get 的内存语义访问），
+     * 则可能以 set 的语义将变量的值原子地设置为 newValue。
+     * 即使见证值确实与预期值匹配，此操作也可能会错误地失败（通常是由于内存争用）。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -874,36 +202,8 @@ public abstract class VarHandle {
     boolean weakCompareAndSetPlain(Object... args);
 
     /**
-     * Possibly atomically sets the value of a variable to the {@code newValue}
-     * with the memory semantics of {@link #setVolatile} if the variable's
-     * current value, referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>This operation may fail spuriously (typically, due to memory
-     * contention) even if the witness value does match the expected value.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)boolean}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * weakCompareAndSet} must match the access mode type that is the
-     * result of calling {@code accessModeType(VarHandle.AccessMode.WEAK_COMPARE_AND_SET)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return {@code true} if successful, otherwise {@code false} if the
-     * witness value was not the same as the {@code expectedValue} or if this
-     * operation spuriously failed.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 如果变量的当前值（称为见证值）== 预期值（使用 getVolatile 的内存语义访问），则可能使用 setVolatile 的内存语义将变量的值原子地设置为 newValue。
+     * 即使见证值确实与预期值匹配，此操作也可能会错误地失败（通常是由于内存争用）。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -911,37 +211,9 @@ public abstract class VarHandle {
     boolean weakCompareAndSet(Object... args);
 
     /**
-     * Possibly atomically sets the value of a variable to the {@code newValue}
-     * with the semantics of {@link #set} if the variable's current value,
-     * referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>This operation may fail spuriously (typically, due to memory
-     * contention) even if the witness value does match the expected value.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)boolean}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * weakCompareAndSetAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.WEAK_COMPARE_AND_SET_ACQUIRE)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return {@code true} if successful, otherwise {@code false} if the
-     * witness value was not the same as the {@code expectedValue} or if this
-     * operation spuriously failed.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #getAcquire(Object...)
+     * 如果变量的当前值（称为见证值）== expectedValue（使用 getAcquire 的内存语义访问），
+     * 则可能使用 set 语义将变量的值原子地设置为 newValue。
+     * 即使见证值确实与预期值匹配，此操作也可能会错误地失败（通常是由于内存争用）。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -949,37 +221,8 @@ public abstract class VarHandle {
     boolean weakCompareAndSetAcquire(Object... args);
 
     /**
-     * Possibly atomically sets the value of a variable to the {@code newValue}
-     * with the semantics of {@link #setRelease} if the variable's current
-     * value, referred to as the <em>witness value</em>, {@code ==} the
-     * {@code expectedValue}, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>This operation may fail spuriously (typically, due to memory
-     * contention) even if the witness value does match the expected value.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)boolean}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code
-     * weakCompareAndSetRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.WEAK_COMPARE_AND_SET_RELEASE)}
-     * on this VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T expectedValue, T newValue)}
-     * , statically represented using varargs.
-     * @return {@code true} if successful, otherwise {@code false} if the
-     * witness value was not the same as the {@code expectedValue} or if this
-     * operation spuriously failed.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setRelease(Object...)
-     * @see #get(Object...)
+     * 如果变量的当前值（称为见证值）== 预期值（使用 get 的内存语义访问），
+     * 则可能使用 setRelease 的语义将变量的值原子地设置为 newValue。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -987,32 +230,7 @@ public abstract class VarHandle {
     boolean weakCompareAndSetRelease(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #setVolatile} and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndSet}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_SET)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 setVolatile 的内存语义以原子方式将变量的值设置为 newValue 并返回变量的先前值，如使用 getVolatile 的内存语义访问的那样。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1020,32 +238,7 @@ public abstract class VarHandle {
     Object getAndSet(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #set} and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndSetAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_SET_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 set 的内存语义以原子方式将变量的值设置为 newValue 并返回变量的先前值，如使用 getAcquire 的内存语义访问的那样。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1053,32 +246,7 @@ public abstract class VarHandle {
     Object getAndSetAcquire(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the {@code newValue} with the
-     * memory semantics of {@link #setRelease} and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T newValue)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndSetRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_SET_RELEASE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T newValue)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 setRelease 的内存语义以原子方式将变量的值设置为 newValue 并返回变量的先前值，如使用 get 的内存语义访问。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1089,32 +257,7 @@ public abstract class VarHandle {
     // Throw UnsupportedOperationException for refs
 
     /**
-     * Atomically adds the {@code value} to the current value of a variable with
-     * the memory semantics of {@link #setVolatile}, and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T value)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndAdd}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_ADD)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T value)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 setVolatile 的内存语义将值原子地添加到变量的当前值，并返回变量的先前值，如使用 getVolatile 的内存语义访问的那样。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1122,32 +265,7 @@ public abstract class VarHandle {
     Object getAndAdd(Object... args);
 
     /**
-     * Atomically adds the {@code value} to the current value of a variable with
-     * the memory semantics of {@link #set}, and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T value)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndAddAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_ADD_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T value)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 set 的内存语义将值原子地添加到变量的当前值，并返回变量的先前值，如使用 getAcquire 的内存语义访问。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1155,32 +273,7 @@ public abstract class VarHandle {
     Object getAndAddAcquire(Object... args);
 
     /**
-     * Atomically adds the {@code value} to the current value of a variable with
-     * the memory semantics of {@link #setRelease}, and returns the variable's
-     * previous value, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T value)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndAddRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_ADD_RELEASE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T value)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 setRelease 的内存语义将值原子地添加到变量的当前值，并返回变量的先前值，如使用 get 的内存语义访问。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1192,36 +285,10 @@ public abstract class VarHandle {
     // Throw UnsupportedOperationException for refs
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise OR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setVolatile} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getVolatile}.
+     * 原子地将变量的值设置为变量当前值与具有 setVolatile 内存语义的掩码之间的按位 OR 的结果，
+     * 并返回变量的先前值，如使用 getVolatile 的内存语义访问。
      *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical OR is performed instead of a bitwise OR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseOr}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_OR)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 如果变量类型是非整型布尔类型，则执行逻辑 OR 而不是按位 OR。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1229,36 +296,8 @@ public abstract class VarHandle {
     Object getAndBitwiseOr(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise OR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #set} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical OR is performed instead of a bitwise OR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseOrAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_OR_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #getAcquire(Object...)
+     * 原子地将变量的值设置为变量当前值与具有 set 内存语义的掩码之间的按位 OR 的结果，并返回变量的先前值，如使用 getAcquire 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑 OR 而不是按位 OR。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1266,36 +305,8 @@ public abstract class VarHandle {
     Object getAndBitwiseOrAcquire(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise OR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setRelease} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical OR is performed instead of a bitwise OR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseOrRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_OR_RELEASE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setRelease(Object...)
-     * @see #get(Object...)
+     * 使用 setRelease 的内存语义将变量的值原子地设置为变量当前值和掩码之间按位或的结果，并返回变量的先前值，如使用 get 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑 OR 而不是按位 OR。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1303,36 +314,8 @@ public abstract class VarHandle {
     Object getAndBitwiseOrRelease(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise AND between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setVolatile} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical AND is performed instead of a bitwise AND.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseAnd}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_AND)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 原子地将变量的值设置为变量当前值与具有 setVolatile 内存语义的掩码之间的按位 AND 结果，并返回变量的先前值，如使用 getVolatile 内存语义访问的那样。
+     * 如果变量类型是非整型布尔类型，则执行逻辑与而不是按位与。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1340,36 +323,8 @@ public abstract class VarHandle {
     Object getAndBitwiseAnd(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise AND between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #set} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical AND is performed instead of a bitwise AND.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseAndAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_AND_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #getAcquire(Object...)
+     * 原子地将变量的值设置为变量当前值与具有 set 内存语义的掩码之间的按位 AND 的结果，并返回变量的先前值，如使用 getAcquire 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑与而不是按位与。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1377,36 +332,8 @@ public abstract class VarHandle {
     Object getAndBitwiseAndAcquire(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise AND between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setRelease} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical AND is performed instead of a bitwise AND.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseAndRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_AND_RELEASE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setRelease(Object...)
-     * @see #get(Object...)
+     * 使用 setRelease 的内存语义将变量的值原子地设置为变量当前值与掩码之间的按位 AND 结果，并返回变量的先前值，如使用 get 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑与而不是按位与。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1414,36 +341,8 @@ public abstract class VarHandle {
     Object getAndBitwiseAndRelease(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise XOR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setVolatile} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getVolatile}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical XOR is performed instead of a bitwise XOR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseXor}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_XOR)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setVolatile(Object...)
-     * @see #getVolatile(Object...)
+     * 使用 setVolatile 的内存语义将变量的值原子地设置为变量当前值与掩码之间的按位异或的结果，并返回变量的先前值，如使用 getVolatile 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑异或而不是按位异或。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1451,36 +350,8 @@ public abstract class VarHandle {
     Object getAndBitwiseXor(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise XOR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #set} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #getAcquire}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical XOR is performed instead of a bitwise XOR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseXorAcquire}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_XOR_ACQUIRE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #set(Object...)
-     * @see #getAcquire(Object...)
+     * 原子地将变量的值设置为变量当前值与具有 set 内存语义的掩码之间的按位异或的结果，并返回变量的先前值，如使用 getAcquire 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑异或而不是按位异或。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1488,36 +359,8 @@ public abstract class VarHandle {
     Object getAndBitwiseXorAcquire(Object... args);
 
     /**
-     * Atomically sets the value of a variable to the result of
-     * bitwise XOR between the variable's current value and the {@code mask}
-     * with the memory semantics of {@link #setRelease} and returns the
-     * variable's previous value, as accessed with the memory semantics of
-     * {@link #get}.
-     *
-     * <p>If the variable type is the non-integral {@code boolean} type then a
-     * logical XOR is performed instead of a bitwise XOR.
-     *
-     * <p>The method signature is of the form {@code (CT1 ct1, ..., CTn ctn, T mask)T}.
-     *
-     * <p>The symbolic type descriptor at the call site of {@code getAndBitwiseXorRelease}
-     * must match the access mode type that is the result of calling
-     * {@code accessModeType(VarHandle.AccessMode.GET_AND_BITWISE_XOR_RELEASE)} on this
-     * VarHandle.
-     *
-     * @param args the signature-polymorphic parameter list of the form
-     * {@code (CT1 ct1, ..., CTn ctn, T mask)}
-     * , statically represented using varargs.
-     * @return the signature-polymorphic result that is the previous value of
-     * the variable
-     * , statically represented using {@code Object}.
-     * @throws UnsupportedOperationException if the access mode is unsupported
-     * for this VarHandle.
-     * @throws WrongMethodTypeException if the access mode type does not
-     * match the caller's symbolic type descriptor.
-     * @throws ClassCastException if the access mode type matches the caller's
-     * symbolic type descriptor, but a reference cast fails.
-     * @see #setRelease(Object...)
-     * @see #get(Object...)
+     * 使用 setRelease 的内存语义将变量的值原子地设置为变量当前值与掩码之间按位异或的结果，并返回变量的先前值，如使用 get 的内存语义访问。
+     * 如果变量类型是非整型布尔类型，则执行逻辑异或而不是按位异或。
      */
     public final native
     @MethodHandle.PolymorphicSignature
@@ -1594,193 +437,158 @@ public abstract class VarHandle {
     }
 
     /**
-     * The set of access modes that specify how a variable, referenced by a
-     * VarHandle, is accessed.
+     * 一组访问模式，指定如何访问由 VarHandle 引用的变量。
      */
     public enum AccessMode {
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
-         * {@link VarHandle#get VarHandle.get}
+         * 访问方式由对应方法指定的访问方式 VarHandle.get
          */
         GET("get", AccessType.GET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
-         * {@link VarHandle#set VarHandle.set}
+         * 访问方式由对应方法指定的访问方式 VarHandle.set
          */
         SET("set", AccessType.SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
-         * {@link VarHandle#getVolatile VarHandle.getVolatile}
+         * 访问方式由对应方法指定的访问方式 VarHandle.getVolatile}
          */
         GET_VOLATILE("getVolatile", AccessType.GET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#setVolatile VarHandle.setVolatile}
          */
         SET_VOLATILE("setVolatile", AccessType.SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAcquire VarHandle.getAcquire}
          */
         GET_ACQUIRE("getAcquire", AccessType.GET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#setRelease VarHandle.setRelease}
          */
         SET_RELEASE("setRelease", AccessType.SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getOpaque VarHandle.getOpaque}
          */
         GET_OPAQUE("getOpaque", AccessType.GET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#setOpaque VarHandle.setOpaque}
          */
         SET_OPAQUE("setOpaque", AccessType.SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#compareAndSet VarHandle.compareAndSet}
          */
         COMPARE_AND_SET("compareAndSet", AccessType.COMPARE_AND_SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#compareAndExchange VarHandle.compareAndExchange}
          */
         COMPARE_AND_EXCHANGE("compareAndExchange", AccessType.COMPARE_AND_EXCHANGE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#compareAndExchangeAcquire VarHandle.compareAndExchangeAcquire}
          */
         COMPARE_AND_EXCHANGE_ACQUIRE("compareAndExchangeAcquire", AccessType.COMPARE_AND_EXCHANGE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#compareAndExchangeRelease VarHandle.compareAndExchangeRelease}
          */
         COMPARE_AND_EXCHANGE_RELEASE("compareAndExchangeRelease", AccessType.COMPARE_AND_EXCHANGE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#weakCompareAndSetPlain VarHandle.weakCompareAndSetPlain}
          */
         WEAK_COMPARE_AND_SET_PLAIN("weakCompareAndSetPlain", AccessType.COMPARE_AND_SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#weakCompareAndSet VarHandle.weakCompareAndSet}
          */
         WEAK_COMPARE_AND_SET("weakCompareAndSet", AccessType.COMPARE_AND_SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#weakCompareAndSetAcquire VarHandle.weakCompareAndSetAcquire}
          */
         WEAK_COMPARE_AND_SET_ACQUIRE("weakCompareAndSetAcquire", AccessType.COMPARE_AND_SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#weakCompareAndSetRelease VarHandle.weakCompareAndSetRelease}
          */
         WEAK_COMPARE_AND_SET_RELEASE("weakCompareAndSetRelease", AccessType.COMPARE_AND_SET),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndSet VarHandle.getAndSet}
          */
         GET_AND_SET("getAndSet", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndSetAcquire VarHandle.getAndSetAcquire}
          */
         GET_AND_SET_ACQUIRE("getAndSetAcquire", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndSetRelease VarHandle.getAndSetRelease}
          */
         GET_AND_SET_RELEASE("getAndSetRelease", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndAdd VarHandle.getAndAdd}
          */
         GET_AND_ADD("getAndAdd", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndAddAcquire VarHandle.getAndAddAcquire}
          */
         GET_AND_ADD_ACQUIRE("getAndAddAcquire", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndAddRelease VarHandle.getAndAddRelease}
          */
         GET_AND_ADD_RELEASE("getAndAddRelease", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseOr VarHandle.getAndBitwiseOr}
          */
         GET_AND_BITWISE_OR("getAndBitwiseOr", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseOrRelease VarHandle.getAndBitwiseOrRelease}
          */
         GET_AND_BITWISE_OR_RELEASE("getAndBitwiseOrRelease", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseOrAcquire VarHandle.getAndBitwiseOrAcquire}
          */
         GET_AND_BITWISE_OR_ACQUIRE("getAndBitwiseOrAcquire", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseAnd VarHandle.getAndBitwiseAnd}
          */
         GET_AND_BITWISE_AND("getAndBitwiseAnd", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseAndRelease VarHandle.getAndBitwiseAndRelease}
          */
         GET_AND_BITWISE_AND_RELEASE("getAndBitwiseAndRelease", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseAndAcquire VarHandle.getAndBitwiseAndAcquire}
          */
         GET_AND_BITWISE_AND_ACQUIRE("getAndBitwiseAndAcquire", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseXor VarHandle.getAndBitwiseXor}
          */
         GET_AND_BITWISE_XOR("getAndBitwiseXor", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseXorRelease VarHandle.getAndBitwiseXorRelease}
          */
         GET_AND_BITWISE_XOR_RELEASE("getAndBitwiseXorRelease", AccessType.GET_AND_UPDATE),
         /**
-         * The access mode whose access is specified by the corresponding
-         * method
+         * 访问方式由对应方法指定的访问方式
          * {@link VarHandle#getAndBitwiseXorAcquire VarHandle.getAndBitwiseXorAcquire}
          */
         GET_AND_BITWISE_XOR_ACQUIRE("getAndBitwiseXorAcquire", AccessType.GET_AND_UPDATE),
@@ -1807,31 +615,20 @@ public abstract class VarHandle {
         }
 
         /**
-         * Returns the {@code VarHandle} signature-polymorphic method name
-         * associated with this {@code AccessMode} value.
-         *
-         * @return the signature-polymorphic method name
-         * @see #valueFromMethodName
+         * 返回与此 AccessMode 值关联的 VarHandle 签名多态方法名称。
          */
         public String methodName() {
             return methodName;
         }
 
         /**
-         * Returns the {@code AccessMode} value associated with the specified
-         * {@code VarHandle} signature-polymorphic method name.
-         *
-         * @param methodName the signature-polymorphic method name
-         * @return the {@code AccessMode} value
-         * @throws IllegalArgumentException if there is no {@code AccessMode}
-         *         value associated with method name (indicating the method
-         *         name does not correspond to a {@code VarHandle}
-         *         signature-polymorphic method name).
-         * @see #methodName()
+         * 返回与指定的 VarHandle 签名多态方法名称关联的 AccessMode 值。
          */
         public static AccessMode valueFromMethodName(String methodName) {
             AccessMode am = methodNameToAccessMode.get(methodName);
-            if (am != null) return am;
+            if (am != null) {
+                return am;
+            }
             throw new IllegalArgumentException("No AccessMode value for method name " + methodName);
         }
 
@@ -1858,9 +655,7 @@ public abstract class VarHandle {
     }
 
     /**
-     * Returns the variable type of variables referenced by this VarHandle.
-     *
-     * @return the variable type of variables referenced by this VarHandle
+     * 返回此 VarHandle 引用的变量的变量类型。
      */
     public final Class<?> varType() {
         MethodType typeSet = accessModeType(AccessMode.SET);
@@ -1868,10 +663,7 @@ public abstract class VarHandle {
     }
 
     /**
-     * Returns the coordinate types for this VarHandle.
-     *
-     * @return the coordinate types for this VarHandle. The returned
-     * list is unmodifiable
+     * 返回此 VarHandle 的坐标类型。
      */
     public final List<Class<?>> coordinateTypes() {
         MethodType typeGet = accessModeType(AccessMode.GET);
@@ -1879,17 +671,9 @@ public abstract class VarHandle {
     }
 
     /**
-     * Obtains the access mode type for this VarHandle and a given access mode.
-     *
-     * <p>The access mode type's parameter types will consist of a prefix that
-     * is the coordinate types of this VarHandle followed by further
-     * types as defined by the access mode method.
-     * The access mode type's return type is defined by the return type of the
-     * access mode method.
-     *
-     * @param accessMode the access mode, corresponding to the
-     * signature-polymorphic method of the same name
-     * @return the access mode type for the given access mode
+     * 获取此 VarHandle 的访问模式类型和给定的访问模式。
+     * 访问模式类型的参数类型将由一个前缀组成，该前缀是此 VarHandle 的坐标类型，后跟访问模式方法定义的其他类型。
+     * 访问模式类型的返回类型由访问模式方法的返回类型定义。
      */
     public final MethodType accessModeType(AccessMode accessMode) {
         TypesAndInvokers tis = getTypesAndInvokers();
@@ -1903,40 +687,15 @@ public abstract class VarHandle {
     abstract MethodType accessModeTypeUncached(AccessMode accessMode);
 
     /**
-     * Returns {@code true} if the given access mode is supported, otherwise
-     * {@code false}.
-     *
-     * <p>The return of a {@code false} value for a given access mode indicates
-     * that an {@code UnsupportedOperationException} is thrown on invocation
-     * of the corresponding access mode method.
-     *
-     * @param accessMode the access mode, corresponding to the
-     * signature-polymorphic method of the same name
-     * @return {@code true} if the given access mode is supported, otherwise
-     * {@code false}.
+     * 如果支持给定的访问模式，则返回 true，否则返回 false。
+     * 给定访问模式返回 false 值表示在调用相应访问模式方法时抛出 UnsupportedOperationException。
      */
     public final boolean isAccessModeSupported(AccessMode accessMode) {
         return AccessMode.getMemberName(accessMode.ordinal(), vform) != null;
     }
 
     /**
-     * Obtains a method handle bound to this VarHandle and the given access
-     * mode.
-     *
-     * @apiNote This method, for a VarHandle {@code vh} and access mode
-     * {@code {access-mode}}, returns a method handle that is equivalent to
-     * method handle {@code bmh} in the following code (though it may be more
-     * efficient):
-     * <pre>{@code
-     * MethodHandle mh = MethodHandles.varHandleExactInvoker(
-     *                       vh.accessModeType(VarHandle.AccessMode.{access-mode}));
-     *
-     * MethodHandle bmh = mh.bindTo(vh);
-     * }</pre>
-     *
-     * @param accessMode the access mode, corresponding to the
-     * signature-polymorphic method of the same name
-     * @return a method handle bound to this VarHandle and the given access mode
+     * 获取绑定到此 VarHandle 的方法句柄和给定的访问模式。
      */
     public final MethodHandle toMethodHandle(AccessMode accessMode) {
         MemberName mn = AccessMode.getMemberName(accessMode.ordinal(), vform);
@@ -2026,13 +785,9 @@ public abstract class VarHandle {
     // Fence methods
 
     /**
-     * Ensures that loads and stores before the fence will not be reordered
-     * with
-     * loads and stores after the fence.
-     *
-     * @apiNote Ignoring the many semantic differences from C and C++, this
-     * method has memory ordering effects compatible with
-     * {@code atomic_thread_fence(memory_order_seq_cst)}
+     * 确保围栏之前的加载和存储不会与围栏之后的加载和存储重新排序。
+     * API注意事项：
+     * 忽略与 C 和 C++ 的许多语义差异，该方法具有与 atomic_thread_fence(memory_order_seq_cst) 兼容的内存排序效果
      */
     @ForceInline
     public static void fullFence() {
@@ -2040,12 +795,9 @@ public abstract class VarHandle {
     }
 
     /**
-     * Ensures that loads before the fence will not be reordered with loads and
-     * stores after the fence.
-     *
-     * @apiNote Ignoring the many semantic differences from C and C++, this
-     * method has memory ordering effects compatible with
-     * {@code atomic_thread_fence(memory_order_acquire)}
+     * 确保围栏之前的加载和存储不会与围栏之后的加载和存储重新排序。
+     * API注意事项：
+     * 忽略与 C 和 C++ 的许多语义差异，该方法具有与 atomic_thread_fence(memory_order_seq_cst) 兼容的内存排序效果
      */
     @ForceInline
     public static void acquireFence() {
@@ -2053,12 +805,9 @@ public abstract class VarHandle {
     }
 
     /**
-     * Ensures that loads and stores before the fence will not be
-     * reordered with stores after the fence.
-     *
-     * @apiNote Ignoring the many semantic differences from C and C++, this
-     * method has memory ordering effects compatible with
-     * {@code atomic_thread_fence(memory_order_release)}
+     * 确保围栏之前的加载和存储不会与围栏之后的加载和存储重新排序。
+     * API注意事项：
+     * 忽略与 C 和 C++ 的许多语义差异，该方法具有与 atomic_thread_fence(memory_order_seq_cst) 兼容的内存排序效果
      */
     @ForceInline
     public static void releaseFence() {
@@ -2066,8 +815,7 @@ public abstract class VarHandle {
     }
 
     /**
-     * Ensures that loads before the fence will not be reordered with
-     * loads after the fence.
+     * 确保围栏之前的负载不会与围栏之后的负载重新排序。
      */
     @ForceInline
     public static void loadLoadFence() {
@@ -2075,8 +823,7 @@ public abstract class VarHandle {
     }
 
     /**
-     * Ensures that stores before the fence will not be reordered with
-     * stores after the fence.
+     * 确保围栏前的存储不会与围栏后的存储重新排序。
      */
     @ForceInline
     public static void storeStoreFence() {

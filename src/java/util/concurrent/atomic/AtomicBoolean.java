@@ -39,14 +39,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
 /**
- * A {@code boolean} value that may be updated atomically. See the
- * {@link VarHandle} specification for descriptions of the properties
- * of atomic accesses. An {@code AtomicBoolean} is used in
- * applications such as atomically updated flags, and cannot be used
- * as a replacement for a {@link Boolean}.
- *
- * @since 1.5
- * @author Doug Lea
+ * 提供了可以原子读取和写入的底层布尔值的操作，并且还包含高级原子操作。
  */
 public class AtomicBoolean implements java.io.Serializable {
     private static final long serialVersionUID = 4654671469794556979L;
@@ -63,39 +56,27 @@ public class AtomicBoolean implements java.io.Serializable {
     private volatile int value;
 
     /**
-     * Creates a new {@code AtomicBoolean} with the given initial value.
-     *
-     * @param initialValue the initial value
+     * 根据指定boolean值，构造函数
      */
     public AtomicBoolean(boolean initialValue) {
         value = initialValue ? 1 : 0;
     }
 
     /**
-     * Creates a new {@code AtomicBoolean} with initial value {@code false}.
+     * 构造函数
      */
     public AtomicBoolean() {
     }
 
     /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getVolatile}.
-     *
-     * @return the current value
+     * 返回当前值
      */
     public final boolean get() {
         return value != 0;
     }
 
     /**
-     * Atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#compareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful. False return indicates that
-     * the actual value was not equal to the expected value.
+     * 如果当前值==期望值，则将该值原子设置为给定的更新值。
      */
     public final boolean compareAndSet(boolean expectedValue, boolean newValue) {
         return VALUE.compareAndSet(this,
@@ -104,20 +85,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Possibly atomically sets the value to {@code newValue}
-     * if the current value {@code == expectedValue},
-     * with memory effects as specified by {@link VarHandle#weakCompareAndSetPlain}.
-     *
-     * @deprecated This method has plain memory effects but the method
-     * name implies volatile memory effects (see methods such as
-     * {@link #compareAndExchange} and {@link #compareAndSet}).  To avoid
-     * confusion over plain or volatile memory effects it is recommended that
-     * the method {@link #weakCompareAndSetPlain} be used instead.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
-     * @see #weakCompareAndSetPlain
+     * 如果当前值 {== expectedValue}，则可能将值原子地设置为 {newValue}，具有 {VarHandleakCompareAndSetPlain} 指定的内存效果。
      */
     @Deprecated(since="9")
     public boolean weakCompareAndSet(boolean expectedValue, boolean newValue) {
@@ -143,40 +111,28 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setVolatile}.
-     *
-     * @param newValue the new value
+     * 无条件地设置为给定的值
      */
     public final void set(boolean newValue) {
         value = newValue ? 1 : 0;
     }
 
     /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
-     * @since 1.6
+     * 最终设定为给定值。
      */
     public final void lazySet(boolean newValue) {
         VALUE.setRelease(this, (newValue ? 1 : 0));
     }
 
     /**
-     * Atomically sets the value to {@code newValue} and returns the old value,
-     * with memory effects as specified by {@link VarHandle#getAndSet}.
-     *
-     * @param newValue the new value
-     * @return the previous value
+     * 将原子设置为给定值并返回上一个值。
      */
     public final boolean getAndSet(boolean newValue) {
         return (int)VALUE.getAndSet(this, (newValue ? 1 : 0)) != 0;
     }
 
     /**
-     * Returns the String representation of the current value.
-     * @return the String representation of the current value
+     * 当前值的string表示
      */
     public String toString() {
         return Boolean.toString(get());
@@ -185,10 +141,7 @@ public class AtomicBoolean implements java.io.Serializable {
     // jdk9
 
     /**
-     * Returns the current value, with memory semantics of reading as
-     * if the variable was declared non-{@code volatile}.
-     *
-     * @return the value
+     * 返回当前值，具有读取的内存语义，就像变量被声明为 non-volatile一样。
      * @since 9
      */
     public final boolean getPlain() {
@@ -196,22 +149,15 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Sets the value to {@code newValue}, with memory semantics
-     * of setting as if the variable was declared non-{@code volatile}
-     * and non-{@code final}.
-     *
-     * @param newValue the new value
-     * @since 9
+     * 将值设置为 {newValue}，具有设置的内存语义，就好像变量被声明为非 {volatile} 和非 {final}。
      */
     public final void setPlain(boolean newValue) {
         VALUE.set(this, newValue ? 1 : 0);
     }
 
     /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getOpaque}.
-     *
-     * @return the value
+     * 返回当前值，具有 VarHandle.getOpaque(java.lang.Object...)指定的内存效果。
+     * 参见： VarHandle类
      * @since 9
      */
     public final boolean getOpaque() {
@@ -219,8 +165,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setOpaque}.
+     * 将值设置为 newValue，具有 VarHandle#setOpaque 指定的内存效果。
      *
      * @param newValue the new value
      * @since 9
@@ -230,10 +175,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Returns the current value,
-     * with memory effects as specified by {@link VarHandle#getAcquire}.
-     *
-     * @return the value
+     * 返回当前值，具有 VarHandle.getAcquire 指定的内存效果。
      * @since 9
      */
     public final boolean getAcquire() {
@@ -241,10 +183,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Sets the value to {@code newValue},
-     * with memory effects as specified by {@link VarHandle#setRelease}.
-     *
-     * @param newValue the new value
+     * 将值设置为 newValue，具有 VarHandle.setRelease 指定的内存效果。
      * @since 9
      */
     public final void setRelease(boolean newValue) {
@@ -252,15 +191,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchange}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the witness value, which will be the same as the
-     * expected value if successful
+     * 如果当前值（称为见证值，== expectedValue）具有由 VarHandle.compareAndExchange 指定的内存效果，则以原子方式将该值设置为 newValue。
      * @since 9
      */
     public final boolean compareAndExchange(boolean expectedValue, boolean newValue) {
@@ -270,15 +201,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the witness value, which will be the same as the
-     * expected value if successful
+     * 如果当前值（称为见证值，== expectedValue）具有由 VarHandle.compareAndExchangeAcquire 指定的内存效果，则以原子方式将该值设置为 newValue。
      * @since 9
      */
     public final boolean compareAndExchangeAcquire(boolean expectedValue, boolean newValue) {
@@ -288,15 +211,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Atomically sets the value to {@code newValue} if the current value,
-     * referred to as the <em>witness value</em>, {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#compareAndExchangeRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return the witness value, which will be the same as the
-     * expected value if successful
+     * 如果当前值（称为见证值，== expectedValue）具有由 VarHandle.compareAndExchangeRelease 指定的内存效果，则以原子方式将该值设置为 newValue。
      * @since 9
      */
     public final boolean compareAndExchangeRelease(boolean expectedValue, boolean newValue) {
@@ -306,14 +221,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSet}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
+     * 如果当前值 == 预期值，则可能以原子方式将值设置为 newValue，并具有 VarHandle.weakCompareAndSet 指定的内存效果。
      * @since 9
      */
     public final boolean weakCompareAndSetVolatile(boolean expectedValue, boolean newValue) {
@@ -323,14 +231,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetAcquire}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
+     * 如果当前值 == 预期值，则可能以原子方式将值设置为 newValue，并具有 VarHandle.weakCompareAndSetAcquire 指定的内存效果。
      * @since 9
      */
     public final boolean weakCompareAndSetAcquire(boolean expectedValue, boolean newValue) {
@@ -340,14 +241,7 @@ public class AtomicBoolean implements java.io.Serializable {
     }
 
     /**
-     * Possibly atomically sets the value to {@code newValue} if the current
-     * value {@code == expectedValue},
-     * with memory effects as specified by
-     * {@link VarHandle#weakCompareAndSetRelease}.
-     *
-     * @param expectedValue the expected value
-     * @param newValue the new value
-     * @return {@code true} if successful
+     * 如果当前值 == 预期值，则可能以原子方式将值设置为 newValue，并具有 VarHandle.weakCompareAndSetRelease 指定的内存效果。
      * @since 9
      */
     public final boolean weakCompareAndSetRelease(boolean expectedValue, boolean newValue) {

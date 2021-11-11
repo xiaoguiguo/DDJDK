@@ -44,21 +44,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer.Node;
 
 /**
- * A version of {@link AbstractQueuedSynchronizer} in
- * which synchronization state is maintained as a {@code long}.
- * This class has exactly the same structure, properties, and methods
- * as {@code AbstractQueuedSynchronizer} with the exception
- * that all state-related parameters and results are defined
- * as {@code long} rather than {@code int}. This class
- * may be useful when creating synchronizers such as
- * multilevel locks and barriers that require
- * 64 bits of state.
- *
- * <p>See {@link AbstractQueuedSynchronizer} for usage
- * notes and examples.
- *
- * @since 1.6
- * @author Doug Lea
+ * AbstractQueuedSynchronizer 的一个版本，其中同步状态保持为 long。
+ * 此类具有与 AbstractQueuedSynchronizer 完全相同的结构、属性和方法，不同之处在于所有与状态相关的参数和结果都定义为 long 而不是 int。
+ * 在创建需要 64 位状态的多级锁和屏障等同步器时，此类可能很有用。
  */
 public abstract class AbstractQueuedLongSynchronizer
     extends AbstractOwnableSynchronizer
@@ -66,51 +54,40 @@ public abstract class AbstractQueuedLongSynchronizer
 
     private static final long serialVersionUID = 7373984972572414692L;
 
-    /*
-     * To keep sources in sync, the remainder of this source file is
-     * exactly cloned from AbstractQueuedSynchronizer, replacing class
-     * name and changing ints related with sync state to longs. Please
-     * keep it that way.
+    /**
+     * 为了保持源同步，此源文件的其余部分完全从 AbstractQueuedSynchronizer 克隆，替换类名并将与同步状态相关的整数更改为长整数。 请保持这种状态。
      */
 
     /**
-     * Creates a new {@code AbstractQueuedLongSynchronizer} instance
-     * with initial synchronization state of zero.
+     * 创建一个新的 AbstractQueuedLongSynchronizer 实例，初始同步状态为零。
      */
     protected AbstractQueuedLongSynchronizer() { }
 
     /**
-     * Head of the wait queue, lazily initialized.  Except for
-     * initialization, it is modified only via method setHead.  Note:
-     * If head exists, its waitStatus is guaranteed not to be
-     * CANCELLED.
+     * 等待队列的头部，延迟初始化。 除初始化外，仅通过 setHead 方法进行修改。
+     * 注意：如果 head 存在，则保证其 waitStatus 不会被 CANCELLED。
      */
     private transient volatile Node head;
 
     /**
-     * Tail of the wait queue, lazily initialized.  Modified only via
-     * method enq to add new wait node.
+     * 等待队列的尾部，延迟初始化。 仅通过方法 enq 修改以添加新的等待节点。
      */
     private transient volatile Node tail;
 
     /**
-     * The synchronization state.
+     * 同步状态。
      */
     private volatile long state;
 
     /**
-     * Returns the current value of synchronization state.
-     * This operation has memory semantics of a {@code volatile} read.
-     * @return current state value
+     * 返回同步状态的当前值。 此操作具有易失性(volatile)读取的内存语义。
      */
     protected final long getState() {
         return state;
     }
 
     /**
-     * Sets the value of synchronization state.
-     * This operation has memory semantics of a {@code volatile} write.
-     * @param newState the new state value
+     * 设置同步状态的值。 此操作具有易失性写入的内存语义。
      */
     protected final void setState(long newState) {
         // See JDK-8180620: Clarify VarHandle mixed-access subtleties
@@ -118,15 +95,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Atomically sets synchronization state to the given updated
-     * value if the current state value equals the expected value.
-     * This operation has memory semantics of a {@code volatile} read
-     * and write.
-     *
-     * @param expect the expected value
-     * @param update the new value
-     * @return {@code true} if successful. False return indicates that the actual
-     *         value was not equal to the expected value.
+     * 如果当前状态值等于预期值，则原子地将同步状态设置为给定的更新值。 此操作具有易失性读写的内存语义。
      */
     protected final boolean compareAndSetState(long expect, long update) {
         return STATE.compareAndSet(this, expect, update);
@@ -135,16 +104,12 @@ public abstract class AbstractQueuedLongSynchronizer
     // Queuing utilities
 
     /**
-     * The number of nanoseconds for which it is faster to spin
-     * rather than to use timed park. A rough estimate suffices
-     * to improve responsiveness with very short timeouts.
+     * 旋转速度比使用定时停车更快的纳秒数。 粗略估计足以在非常短的超时时间内提高响应能力。
      */
     static final long SPIN_FOR_TIMEOUT_THRESHOLD = 1000L;
 
     /**
-     * Inserts node into queue, initializing if necessary. See picture above.
-     * @param node the node to insert
-     * @return node's predecessor
+     * 将节点插入队列，必要时进行初始化。
      */
     private Node enq(Node node) {
         for (;;) {
@@ -162,10 +127,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Creates and enqueues node for current thread and given mode.
-     *
-     * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
-     * @return the new node
+     * 为当前线程和给定模式创建和排队节点。
      */
     private Node addWaiter(Node mode) {
         Node node = new Node(mode);
@@ -185,11 +147,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Sets head of queue to be node, thus dequeuing. Called only by
-     * acquire methods.  Also nulls out unused fields for sake of GC
-     * and to suppress unnecessary signals and traversals.
-     *
-     * @param node the node
+     * 将队列头设置为节点，从而出队。 仅由获取方法调用。 为了 GC 和抑制不必要的信号和遍历，还清空了未使用的字段。
      */
     private void setHead(Node node) {
         head = node;
@@ -198,9 +156,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Wakes up node's successor, if one exists.
-     *
-     * @param node the node
+     * 唤醒节点的后继节点（如果存在）。
      */
     private void unparkSuccessor(Node node) {
         /*
@@ -209,8 +165,9 @@ public abstract class AbstractQueuedLongSynchronizer
          * fails or if status is changed by waiting thread.
          */
         int ws = node.waitStatus;
-        if (ws < 0)
+        if (ws < 0) {
             node.compareAndSetWaitStatus(ws, 0);
+        }
 
         /*
          * Thread to unpark is held in successor, which is normally
@@ -221,18 +178,19 @@ public abstract class AbstractQueuedLongSynchronizer
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
-            for (Node p = tail; p != node && p != null; p = p.prev)
-                if (p.waitStatus <= 0)
+            for (Node p = tail; p != node && p != null; p = p.prev) {
+                if (p.waitStatus <= 0) {
                     s = p;
+                }
+            }
         }
-        if (s != null)
+        if (s != null) {
             LockSupport.unpark(s.thread);
+        }
     }
 
     /**
-     * Release action for shared mode -- signals successor and ensures
-     * propagation. (Note: For exclusive mode, release just amounts
-     * to calling unparkSuccessor of head if it needs signal.)
+     * 共享模式的释放动作——表示后继者并确保传播。 （注意：对于独占模式，如果需要信号，释放就相当于调用头部的 unparkSuccessor。）
      */
     private void doReleaseShared() {
         /*
@@ -251,26 +209,23 @@ public abstract class AbstractQueuedLongSynchronizer
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
                 if (ws == Node.SIGNAL) {
-                    if (!h.compareAndSetWaitStatus(Node.SIGNAL, 0))
+                    if (!h.compareAndSetWaitStatus(Node.SIGNAL, 0)) {
                         continue;            // loop to recheck cases
+                    }
                     unparkSuccessor(h);
                 }
-                else if (ws == 0 &&
-                         !h.compareAndSetWaitStatus(0, Node.PROPAGATE))
+                else if (ws == 0 && !h.compareAndSetWaitStatus(0, Node.PROPAGATE)) {
                     continue;                // loop on failed CAS
+                }
             }
-            if (h == head)                   // loop if head changed
+            if (h == head) {                   // loop if head changed
                 break;
+            }
         }
     }
 
     /**
-     * Sets head of queue, and checks if successor may be waiting
-     * in shared mode, if so propagating if either propagate > 0 or
-     * PROPAGATE status was set.
-     *
-     * @param node the node
-     * @param propagate the return value from a tryAcquireShared
+     * 设置队列头，并检查后继者是否可能在共享模式下等待，如果传播 > 0 或设置了 PROPAGATE 状态，则传播。
      */
     private void setHeadAndPropagate(Node node, long propagate) {
         Node h = head; // Record old head for check below
@@ -294,29 +249,30 @@ public abstract class AbstractQueuedLongSynchronizer
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
             (h = head) == null || h.waitStatus < 0) {
             Node s = node.next;
-            if (s == null || s.isShared())
+            if (s == null || s.isShared()) {
                 doReleaseShared();
+            }
         }
     }
 
     // Utilities for various versions of acquire
 
     /**
-     * Cancels an ongoing attempt to acquire.
-     *
-     * @param node the node
+     * 取消正在进行的获取尝试。
      */
     private void cancelAcquire(Node node) {
         // Ignore if node doesn't exist
-        if (node == null)
+        if (node == null) {
             return;
+        }
 
         node.thread = null;
 
         // Skip cancelled predecessors
         Node pred = node.prev;
-        while (pred.waitStatus > 0)
+        while (pred.waitStatus > 0) {
             node.prev = pred = pred.prev;
+        }
 
         // predNext is the apparent node to unsplice. CASes below will
         // fail if not, in which case, we lost race vs another cancel
@@ -353,22 +309,17 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Checks and updates status for a node that failed to acquire.
-     * Returns true if thread should block. This is the main signal
-     * control in all acquire loops.  Requires that pred == node.prev.
-     *
-     * @param pred node's predecessor holding status
-     * @param node the node
-     * @return {@code true} if thread should block
+     * 检查和更新未能获取的节点的状态。 如果线程应该阻塞，则返回 true。 这是所有获取循环中的主要信号控制。 要求 pred == node.prev。
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus;
-        if (ws == Node.SIGNAL)
+        if (ws == Node.SIGNAL) {
             /*
              * This node has already set status asking a release
              * to signal it, so it can safely park.
              */
             return true;
+        }
         if (ws > 0) {
             /*
              * Predecessor was cancelled. Skip over predecessors and
@@ -390,38 +341,27 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Convenience method to interrupt current thread.
+     * 中断当前线程的便捷方法。
      */
     static void selfInterrupt() {
         Thread.currentThread().interrupt();
     }
 
     /**
-     * Convenience method to park and then check if interrupted.
-     *
-     * @return {@code true} if interrupted
+     * 停车然后检查是否中断的便捷方法。
      */
     private final boolean parkAndCheckInterrupt() {
         LockSupport.park(this);
         return Thread.interrupted();
     }
 
-    /*
-     * Various flavors of acquire, varying in exclusive/shared and
-     * control modes.  Each is mostly the same, but annoyingly
-     * different.  Only a little bit of factoring is possible due to
-     * interactions of exception mechanics (including ensuring that we
-     * cancel if tryAcquire throws exception) and other control, at
-     * least not without hurting performance too much.
+    /**
+     * 各种风格的获取，在独占/共享和控制模式中各不相同。 每个都大致相同，但又令人讨厌的不同。
+     * 由于异常机制（包括确保我们在 tryAcquire 抛出异常时取消）和其他控制的相互作用，只能进行一点分解，至少不会在不过度损害性能的情况下。
      */
 
     /**
-     * Acquires in exclusive uninterruptible mode for thread already in
-     * queue. Used by condition wait methods as well as acquire.
-     *
-     * @param node the node
-     * @param arg the acquire argument
-     * @return {@code true} if interrupted while waiting
+     * 以独占不间断模式获取已在队列中的线程。 由条件等待方法以及获取使用。
      */
     final boolean acquireQueued(final Node node, long arg) {
         boolean interrupted = false;
@@ -433,20 +373,21 @@ public abstract class AbstractQueuedLongSynchronizer
                     p.next = null; // help GC
                     return interrupted;
                 }
-                if (shouldParkAfterFailedAcquire(p, node))
+                if (shouldParkAfterFailedAcquire(p, node)) {
                     interrupted |= parkAndCheckInterrupt();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
-            if (interrupted)
+            if (interrupted) {
                 selfInterrupt();
+            }
             throw t;
         }
     }
 
     /**
-     * Acquires in exclusive interruptible mode.
-     * @param arg the acquire argument
+     * 在独占可中断模式下获取。
      */
     private void doAcquireInterruptibly(long arg)
         throws InterruptedException {
@@ -459,9 +400,9 @@ public abstract class AbstractQueuedLongSynchronizer
                     p.next = null; // help GC
                     return;
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt()) {
                     throw new InterruptedException();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
@@ -470,11 +411,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Acquires in exclusive timed mode.
-     *
-     * @param arg the acquire argument
-     * @param nanosTimeout max wait time
-     * @return {@code true} if acquired
+     * 以独占定时模式获取。
      */
     private boolean doAcquireNanos(long arg, long nanosTimeout)
             throws InterruptedException {
@@ -495,11 +432,12 @@ public abstract class AbstractQueuedLongSynchronizer
                     cancelAcquire(node);
                     return false;
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD)
+                if (shouldParkAfterFailedAcquire(p, node) && nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD) {
                     LockSupport.parkNanos(this, nanosTimeout);
-                if (Thread.interrupted())
+                }
+                if (Thread.interrupted()) {
                     throw new InterruptedException();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
@@ -508,8 +446,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Acquires in shared uninterruptible mode.
-     * @param arg the acquire argument
+     * 在共享不间断模式下获取。
      */
     private void doAcquireShared(long arg) {
         final Node node = addWaiter(Node.SHARED);
@@ -525,21 +462,22 @@ public abstract class AbstractQueuedLongSynchronizer
                         return;
                     }
                 }
-                if (shouldParkAfterFailedAcquire(p, node))
+                if (shouldParkAfterFailedAcquire(p, node)) {
                     interrupted |= parkAndCheckInterrupt();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
             throw t;
         } finally {
-            if (interrupted)
+            if (interrupted) {
                 selfInterrupt();
+            }
         }
     }
 
     /**
-     * Acquires in shared interruptible mode.
-     * @param arg the acquire argument
+     * 在共享可中断模式下获取。
      */
     private void doAcquireSharedInterruptibly(long arg)
         throws InterruptedException {
@@ -555,9 +493,9 @@ public abstract class AbstractQueuedLongSynchronizer
                         return;
                     }
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt()) {
                     throw new InterruptedException();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
@@ -566,16 +504,13 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Acquires in shared timed mode.
-     *
-     * @param arg the acquire argument
-     * @param nanosTimeout max wait time
-     * @return {@code true} if acquired
+     * 在共享定时模式下获取。
      */
     private boolean doAcquireSharedNanos(long arg, long nanosTimeout)
             throws InterruptedException {
-        if (nanosTimeout <= 0L)
+        if (nanosTimeout <= 0L) {
             return false;
+        }
         final long deadline = System.nanoTime() + nanosTimeout;
         final Node node = addWaiter(Node.SHARED);
         try {
@@ -594,11 +529,12 @@ public abstract class AbstractQueuedLongSynchronizer
                     cancelAcquire(node);
                     return false;
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD)
+                if (shouldParkAfterFailedAcquire(p, node) && nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD) {
                     LockSupport.parkNanos(this, nanosTimeout);
-                if (Thread.interrupted())
+                }
+                if (Thread.interrupted()) {
                     throw new InterruptedException();
+                }
             }
         } catch (Throwable t) {
             cancelAcquire(node);
@@ -609,294 +545,141 @@ public abstract class AbstractQueuedLongSynchronizer
     // Main exported methods
 
     /**
-     * Attempts to acquire in exclusive mode. This method should query
-     * if the state of the object permits it to be acquired in the
-     * exclusive mode, and if so to acquire it.
-     *
-     * <p>This method is always invoked by the thread performing
-     * acquire.  If this method reports failure, the acquire method
-     * may queue the thread, if it is not already queued, until it is
-     * signalled by a release from some other thread. This can be used
-     * to implement method {@link Lock#tryLock()}.
-     *
-     * <p>The default
-     * implementation throws {@link UnsupportedOperationException}.
-     *
-     * @param arg the acquire argument. This value is always the one
-     *        passed to an acquire method, or is the value saved on entry
-     *        to a condition wait.  The value is otherwise uninterpreted
-     *        and can represent anything you like.
-     * @return {@code true} if successful. Upon success, this object has
-     *         been acquired.
-     * @throws IllegalMonitorStateException if acquiring would place this
-     *         synchronizer in an illegal state. This exception must be
-     *         thrown in a consistent fashion for synchronization to work
-     *         correctly.
-     * @throws UnsupportedOperationException if exclusive mode is not supported
+     * 尝试以独占模式获取。 该方法应该查询对象的状态是否允许以独占模式获取它，如果允许则获取它。
+     * 此方法始终由执行获取的线程调用。 如果此方法报告失败，acquire 方法可能会将线程排队（如果它尚未排队），直到收到来自某个其他线程的释放信号。
+     * 这可用于实现方法 Lock.tryLock()。
      */
     protected boolean tryAcquire(long arg) {
         throw new UnsupportedOperationException();
     }
 
     /**
-     * Attempts to set the state to reflect a release in exclusive
-     * mode.
-     *
-     * <p>This method is always invoked by the thread performing release.
-     *
-     * <p>The default implementation throws
-     * {@link UnsupportedOperationException}.
-     *
-     * @param arg the release argument. This value is always the one
-     *        passed to a release method, or the current state value upon
-     *        entry to a condition wait.  The value is otherwise
-     *        uninterpreted and can represent anything you like.
-     * @return {@code true} if this object is now in a fully released
-     *         state, so that any waiting threads may attempt to acquire;
-     *         and {@code false} otherwise.
-     * @throws IllegalMonitorStateException if releasing would place this
-     *         synchronizer in an illegal state. This exception must be
-     *         thrown in a consistent fashion for synchronization to work
-     *         correctly.
-     * @throws UnsupportedOperationException if exclusive mode is not supported
+     * 尝试设置状态以反映独占模式下的发布。
+     * 此方法始终由执行释放的线程调用。
      */
     protected boolean tryRelease(long arg) {
         throw new UnsupportedOperationException();
     }
 
     /**
-     * Attempts to acquire in shared mode. This method should query if
-     * the state of the object permits it to be acquired in the shared
-     * mode, and if so to acquire it.
-     *
-     * <p>This method is always invoked by the thread performing
-     * acquire.  If this method reports failure, the acquire method
-     * may queue the thread, if it is not already queued, until it is
-     * signalled by a release from some other thread.
-     *
-     * <p>The default implementation throws {@link
-     * UnsupportedOperationException}.
-     *
-     * @param arg the acquire argument. This value is always the one
-     *        passed to an acquire method, or is the value saved on entry
-     *        to a condition wait.  The value is otherwise uninterpreted
-     *        and can represent anything you like.
-     * @return a negative value on failure; zero if acquisition in shared
-     *         mode succeeded but no subsequent shared-mode acquire can
-     *         succeed; and a positive value if acquisition in shared
-     *         mode succeeded and subsequent shared-mode acquires might
-     *         also succeed, in which case a subsequent waiting thread
-     *         must check availability. (Support for three different
-     *         return values enables this method to be used in contexts
-     *         where acquires only sometimes act exclusively.)  Upon
-     *         success, this object has been acquired.
-     * @throws IllegalMonitorStateException if acquiring would place this
-     *         synchronizer in an illegal state. This exception must be
-     *         thrown in a consistent fashion for synchronization to work
-     *         correctly.
-     * @throws UnsupportedOperationException if shared mode is not supported
+     * 尝试以共享模式获取。 该方法应该查询对象的状态是否允许在共享模式下获取它，如果允许则获取它。
+     * 此方法始终由执行获取的线程调用。 如果此方法报告失败，acquire 方法可能会将线程排队（如果它尚未排队），直到收到来自某个其他线程的释放信号。
      */
     protected long tryAcquireShared(long arg) {
         throw new UnsupportedOperationException();
     }
 
     /**
-     * Attempts to set the state to reflect a release in shared mode.
-     *
-     * <p>This method is always invoked by the thread performing release.
-     *
-     * <p>The default implementation throws
-     * {@link UnsupportedOperationException}.
-     *
-     * @param arg the release argument. This value is always the one
-     *        passed to a release method, or the current state value upon
-     *        entry to a condition wait.  The value is otherwise
-     *        uninterpreted and can represent anything you like.
-     * @return {@code true} if this release of shared mode may permit a
-     *         waiting acquire (shared or exclusive) to succeed; and
-     *         {@code false} otherwise
-     * @throws IllegalMonitorStateException if releasing would place this
-     *         synchronizer in an illegal state. This exception must be
-     *         thrown in a consistent fashion for synchronization to work
-     *         correctly.
-     * @throws UnsupportedOperationException if shared mode is not supported
+     * 尝试设置状态以反映共享模式下的发布。
+     * 此方法始终由执行释放的线程调用。
      */
     protected boolean tryReleaseShared(long arg) {
         throw new UnsupportedOperationException();
     }
 
     /**
-     * Returns {@code true} if synchronization is held exclusively with
-     * respect to the current (calling) thread.  This method is invoked
-     * upon each call to a {@link ConditionObject} method.
-     *
-     * <p>The default implementation throws {@link
-     * UnsupportedOperationException}. This method is invoked
-     * internally only within {@link ConditionObject} methods, so need
-     * not be defined if conditions are not used.
-     *
-     * @return {@code true} if synchronization is held exclusively;
-     *         {@code false} otherwise
-     * @throws UnsupportedOperationException if conditions are not supported
+     * 如果与当前（调用）线程独占同步，则返回 true。 每次调用 AbstractQueuedLongSynchronizer.ConditionObject 方法时都会调用此方法。
+     * 默认实现抛出 UnsupportedOperationException。 此方法仅在 AbstractQueuedLongSynchronizer.ConditionObject 方法内部调用，
+     * 因此如果不使用条件则无需定义。
      */
     protected boolean isHeldExclusively() {
         throw new UnsupportedOperationException();
     }
 
     /**
-     * Acquires in exclusive mode, ignoring interrupts.  Implemented
-     * by invoking at least once {@link #tryAcquire},
-     * returning on success.  Otherwise the thread is queued, possibly
-     * repeatedly blocking and unblocking, invoking {@link
-     * #tryAcquire} until success.  This method can be used
-     * to implement method {@link Lock#lock}.
-     *
-     * @param arg the acquire argument.  This value is conveyed to
-     *        {@link #tryAcquire} but is otherwise uninterpreted and
-     *        can represent anything you like.
+     * 以独占模式获取，忽略中断。 通过至少调用一次 tryAcquire 实现，成功返回。
+     * 否则线程会排队，可能会反复阻塞和解除阻塞，调用 tryAcquire 直到成功。
+     * 此方法可用于实现方法 Lock.lock。
      */
     public final void acquire(long arg) {
-        if (!tryAcquire(arg) &&
-            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
             selfInterrupt();
+        }
     }
 
     /**
-     * Acquires in exclusive mode, aborting if interrupted.
-     * Implemented by first checking interrupt status, then invoking
-     * at least once {@link #tryAcquire}, returning on
-     * success.  Otherwise the thread is queued, possibly repeatedly
-     * blocking and unblocking, invoking {@link #tryAcquire}
-     * until success or the thread is interrupted.  This method can be
-     * used to implement method {@link Lock#lockInterruptibly}.
-     *
-     * @param arg the acquire argument.  This value is conveyed to
-     *        {@link #tryAcquire} but is otherwise uninterpreted and
-     *        can represent anything you like.
-     * @throws InterruptedException if the current thread is interrupted
+     * 以独占模式获取，如果中断则中止。 通过首先检查中断状态来实现，然后至少调用一次 tryAcquire，成功时返回。
+     * 否则线程排队，可能重复阻塞和解除阻塞，调用 tryAcquire 直到成功或线程被中断。
+     * 此方法可用于实现 Lock.lockInterruptably 方法。
      */
     public final void acquireInterruptibly(long arg)
             throws InterruptedException {
-        if (Thread.interrupted())
+        if (Thread.interrupted()) {
             throw new InterruptedException();
-        if (!tryAcquire(arg))
+        }
+        if (!tryAcquire(arg)) {
             doAcquireInterruptibly(arg);
+        }
     }
 
     /**
-     * Attempts to acquire in exclusive mode, aborting if interrupted,
-     * and failing if the given timeout elapses.  Implemented by first
-     * checking interrupt status, then invoking at least once {@link
-     * #tryAcquire}, returning on success.  Otherwise, the thread is
-     * queued, possibly repeatedly blocking and unblocking, invoking
-     * {@link #tryAcquire} until success or the thread is interrupted
-     * or the timeout elapses.  This method can be used to implement
-     * method {@link Lock#tryLock(long, TimeUnit)}.
-     *
-     * @param arg the acquire argument.  This value is conveyed to
-     *        {@link #tryAcquire} but is otherwise uninterpreted and
-     *        can represent anything you like.
-     * @param nanosTimeout the maximum number of nanoseconds to wait
-     * @return {@code true} if acquired; {@code false} if timed out
-     * @throws InterruptedException if the current thread is interrupted
+     * 尝试以独占模式获取，如果中断则中止，如果给定的超时时间过去则失败。
+     * 通过首先检查中断状态来实现，然后至少调用一次 tryAcquire，成功时返回。
+     * 否则，线程将排队，可能会重复阻塞和解除阻塞，调用 tryAcquire 直到成功或线程被中断或超时过去。
+     * 此方法可用于实现方法 Lock.tryLock(long, TimeUnit)。
      */
     public final boolean tryAcquireNanos(long arg, long nanosTimeout)
             throws InterruptedException {
-        if (Thread.interrupted())
+        if (Thread.interrupted()) {
             throw new InterruptedException();
-        return tryAcquire(arg) ||
-            doAcquireNanos(arg, nanosTimeout);
+        }
+        return tryAcquire(arg) || doAcquireNanos(arg, nanosTimeout);
     }
 
     /**
-     * Releases in exclusive mode.  Implemented by unblocking one or
-     * more threads if {@link #tryRelease} returns true.
-     * This method can be used to implement method {@link Lock#unlock}.
-     *
-     * @param arg the release argument.  This value is conveyed to
-     *        {@link #tryRelease} but is otherwise uninterpreted and
-     *        can represent anything you like.
-     * @return the value returned from {@link #tryRelease}
+     * 以独占模式发布。 如果 tryRelease 返回 true，则通过解除阻塞一个或多个线程来实现。 此方法可用于实现方法 Lock.unlock。
      */
     public final boolean release(long arg) {
         if (tryRelease(arg)) {
             Node h = head;
-            if (h != null && h.waitStatus != 0)
+            if (h != null && h.waitStatus != 0) {
                 unparkSuccessor(h);
+            }
             return true;
         }
         return false;
     }
 
     /**
-     * Acquires in shared mode, ignoring interrupts.  Implemented by
-     * first invoking at least once {@link #tryAcquireShared},
-     * returning on success.  Otherwise the thread is queued, possibly
-     * repeatedly blocking and unblocking, invoking {@link
-     * #tryAcquireShared} until success.
-     *
-     * @param arg the acquire argument.  This value is conveyed to
-     *        {@link #tryAcquireShared} but is otherwise uninterpreted
-     *        and can represent anything you like.
+     * 在共享模式下获取，如果中断则中止。 通过首先检查中断状态来实现，然后至少调用一次 tryAcquireShared，成功返回。
+     * 否则线程会排队，可能会重复阻塞和解除阻塞，调用 tryAcquireShared 直到成功或线程被中断。
      */
     public final void acquireShared(long arg) {
-        if (tryAcquireShared(arg) < 0)
+        if (tryAcquireShared(arg) < 0) {
             doAcquireShared(arg);
+        }
     }
 
     /**
-     * Acquires in shared mode, aborting if interrupted.  Implemented
-     * by first checking interrupt status, then invoking at least once
-     * {@link #tryAcquireShared}, returning on success.  Otherwise the
-     * thread is queued, possibly repeatedly blocking and unblocking,
-     * invoking {@link #tryAcquireShared} until success or the thread
-     * is interrupted.
-     * @param arg the acquire argument.
-     * This value is conveyed to {@link #tryAcquireShared} but is
-     * otherwise uninterpreted and can represent anything
-     * you like.
-     * @throws InterruptedException if the current thread is interrupted
+     * 在共享模式下获取，如果中断则中止。 通过首先检查中断状态来实现，然后至少调用一次 tryAcquireShared，成功返回。
+     * 否则线程会排队，可能会重复阻塞和解除阻塞，调用 tryAcquireShared 直到成功或线程被中断。
      */
     public final void acquireSharedInterruptibly(long arg)
             throws InterruptedException {
-        if (Thread.interrupted())
+        if (Thread.interrupted()) {
             throw new InterruptedException();
-        if (tryAcquireShared(arg) < 0)
+        }
+        if (tryAcquireShared(arg) < 0) {
             doAcquireSharedInterruptibly(arg);
+        }
     }
 
     /**
-     * Attempts to acquire in shared mode, aborting if interrupted, and
-     * failing if the given timeout elapses.  Implemented by first
-     * checking interrupt status, then invoking at least once {@link
-     * #tryAcquireShared}, returning on success.  Otherwise, the
-     * thread is queued, possibly repeatedly blocking and unblocking,
-     * invoking {@link #tryAcquireShared} until success or the thread
-     * is interrupted or the timeout elapses.
-     *
-     * @param arg the acquire argument.  This value is conveyed to
-     *        {@link #tryAcquireShared} but is otherwise uninterpreted
-     *        and can represent anything you like.
-     * @param nanosTimeout the maximum number of nanoseconds to wait
-     * @return {@code true} if acquired; {@code false} if timed out
-     * @throws InterruptedException if the current thread is interrupted
+     * 尝试在共享模式下获取，如果被中断则中止，如果给定的超时时间过去则失败。
+     * 通过首先检查中断状态来实现，然后至少调用一次 tryAcquireShared，成功返回。
+     * 否则，线程将排队，可能会重复阻塞和解除阻塞，调用 tryAcquireShared 直到成功或线程被中断或超时。
      */
     public final boolean tryAcquireSharedNanos(long arg, long nanosTimeout)
             throws InterruptedException {
-        if (Thread.interrupted())
+        if (Thread.interrupted()) {
             throw new InterruptedException();
+        }
         return tryAcquireShared(arg) >= 0 ||
             doAcquireSharedNanos(arg, nanosTimeout);
     }
 
     /**
-     * Releases in shared mode.  Implemented by unblocking one or more
-     * threads if {@link #tryReleaseShared} returns true.
-     *
-     * @param arg the release argument.  This value is conveyed to
-     *        {@link #tryReleaseShared} but is otherwise uninterpreted
-     *        and can represent anything you like.
-     * @return the value returned from {@link #tryReleaseShared}
+     * 以共享模式发布。 如果 tryReleaseShared 返回 true，则通过解除阻塞一个或多个线程来实现。
      */
     public final boolean releaseShared(long arg) {
         if (tryReleaseShared(arg)) {
@@ -909,43 +692,28 @@ public abstract class AbstractQueuedLongSynchronizer
     // Queue inspection methods
 
     /**
-     * Queries whether any threads are waiting to acquire. Note that
-     * because cancellations due to interrupts and timeouts may occur
-     * at any time, a {@code true} return does not guarantee that any
-     * other thread will ever acquire.
-     *
-     * @return {@code true} if there may be other threads waiting to acquire
+     * 查询是否有线程在等待获取。 请注意，由于中断和超时导致的取消随时可能发生，真正的返回并不能保证任何其他线程将永远获得。
      */
     public final boolean hasQueuedThreads() {
-        for (Node p = tail, h = head; p != h && p != null; p = p.prev)
-            if (p.waitStatus <= 0)
+        for (Node p = tail, h = head; p != h && p != null; p = p.prev) {
+            if (p.waitStatus <= 0) {
                 return true;
+            }
+        }
         return false;
     }
 
     /**
-     * Queries whether any threads have ever contended to acquire this
-     * synchronizer; that is, if an acquire method has ever blocked.
-     *
-     * <p>In this implementation, this operation returns in
-     * constant time.
-     *
-     * @return {@code true} if there has ever been contention
+     * 查询是否有线程争用过这个同步器； 也就是说，如果一个获取方法曾经被阻塞。
+     * 在此实现中，此操作以恒定时间返回。
      */
     public final boolean hasContended() {
         return head != null;
     }
 
     /**
-     * Returns the first (longest-waiting) thread in the queue, or
-     * {@code null} if no threads are currently queued.
-     *
-     * <p>In this implementation, this operation normally returns in
-     * constant time, but may iterate upon contention if other threads are
-     * concurrently modifying the queue.
-     *
-     * @return the first (longest-waiting) thread in the queue, or
-     *         {@code null} if no threads are currently queued
+     * 返回队列中的第一个（等待时间最长的）线程，如果当前没有线程排队，则返回 null。
+     * 在此实现中，此操作通常以恒定时间返回，但如果其他线程同时修改队列，则可能会在争用时进行迭代。
      */
     public final Thread getFirstQueuedThread() {
         // handle only fast path, else relay
@@ -953,69 +721,55 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Version of getFirstQueuedThread called when fastpath fails.
+     * 快速路径失败时调用的 getFirstQueuedThread 版本。
      */
     private Thread fullGetFirstQueuedThread() {
-        /*
-         * The first node is normally head.next. Try to get its
-         * thread field, ensuring consistent reads: If thread
-         * field is nulled out or s.prev is no longer head, then
-         * some other thread(s) concurrently performed setHead in
-         * between some of our reads. We try this twice before
-         * resorting to traversal.
+        /**
+         * 第一个节点通常是 head.next。 尝试获取其线程字段，确保读取一致：如果线程字段被清空或 s.prev 不再是头，那么在我们的一些读取之间，
+         * 一些其他线程并发执行 setHead。 在诉诸遍历之前，我们尝试了两次。
          */
         Node h, s;
         Thread st;
-        if (((h = head) != null && (s = h.next) != null &&
-             s.prev == head && (st = s.thread) != null) ||
-            ((h = head) != null && (s = h.next) != null &&
-             s.prev == head && (st = s.thread) != null))
+        if (((h = head) != null && (s = h.next) != null && s.prev == head && (st = s.thread) != null) ||
+            ((h = head) != null && (s = h.next) != null && s.prev == head && (st = s.thread) != null)) {
             return st;
+        }
 
-        /*
-         * Head's next field might not have been set yet, or may have
-         * been unset after setHead. So we must check to see if tail
-         * is actually first node. If not, we continue on, safely
-         * traversing from tail back to head to find first,
-         * guaranteeing termination.
+        /**
+         * Head 的 next 字段可能尚未设置，或者可能在 setHead 之后未设置。 所以我们必须检查tail是否实际上是第一个节点。
+         * 如果没有，我们继续，安全地从尾部回到头部找到第一个，保证终止。
          */
 
         Thread firstThread = null;
         for (Node p = tail; p != null && p != head; p = p.prev) {
             Thread t = p.thread;
-            if (t != null)
+            if (t != null) {
                 firstThread = t;
+            }
         }
         return firstThread;
     }
 
     /**
-     * Returns true if the given thread is currently queued.
-     *
-     * <p>This implementation traverses the queue to determine
-     * presence of the given thread.
-     *
-     * @param thread the thread
-     * @return {@code true} if the given thread is on the queue
-     * @throws NullPointerException if the thread is null
+     * 如果给定线程当前正在排队，则返回 true。
+     * 此实现遍历队列以确定给定线程的存在。
      */
     public final boolean isQueued(Thread thread) {
-        if (thread == null)
+        if (thread == null) {
             throw new NullPointerException();
-        for (Node p = tail; p != null; p = p.prev)
-            if (p.thread == thread)
+        }
+        for (Node p = tail; p != null; p = p.prev) {
+            if (p.thread == thread) {
                 return true;
+            }
+        }
         return false;
     }
 
     /**
-     * Returns {@code true} if the apparent first queued thread, if one
-     * exists, is waiting in exclusive mode.  If this method returns
-     * {@code true}, and the current thread is attempting to acquire in
-     * shared mode (that is, this method is invoked from {@link
-     * #tryAcquireShared}) then it is guaranteed that the current thread
-     * is not the first queued thread.  Used only as a heuristic in
-     * ReentrantReadWriteLock.
+     * 如果明显的第一个排队线程（如果存在）正在以独占模式等待，则返回 true。
+     * 如果此方法返回 true，并且当前线程正在尝试以共享模式获取（即从 tryAcquireShared 调用此方法），则可以保证当前线程不是第一个排队的线程。
+     * 仅用作 ReentrantReadWriteLock 中的启发式方法。
      */
     final boolean apparentlyFirstQueuedIsExclusive() {
         Node h, s;
@@ -1026,47 +780,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Queries whether any threads have been waiting to acquire longer
-     * than the current thread.
-     *
-     * <p>An invocation of this method is equivalent to (but may be
-     * more efficient than):
-     * <pre> {@code
-     * getFirstQueuedThread() != Thread.currentThread()
-     *   && hasQueuedThreads()}</pre>
-     *
-     * <p>Note that because cancellations due to interrupts and
-     * timeouts may occur at any time, a {@code true} return does not
-     * guarantee that some other thread will acquire before the current
-     * thread.  Likewise, it is possible for another thread to win a
-     * race to enqueue after this method has returned {@code false},
-     * due to the queue being empty.
-     *
-     * <p>This method is designed to be used by a fair synchronizer to
-     * avoid <a href="AbstractQueuedSynchronizer.html#barging">barging</a>.
-     * Such a synchronizer's {@link #tryAcquire} method should return
-     * {@code false}, and its {@link #tryAcquireShared} method should
-     * return a negative value, if this method returns {@code true}
-     * (unless this is a reentrant acquire).  For example, the {@code
-     * tryAcquire} method for a fair, reentrant, exclusive mode
-     * synchronizer might look like this:
-     *
-     * <pre> {@code
-     * protected boolean tryAcquire(int arg) {
-     *   if (isHeldExclusively()) {
-     *     // A reentrant acquire; increment hold count
-     *     return true;
-     *   } else if (hasQueuedPredecessors()) {
-     *     return false;
-     *   } else {
-     *     // try to acquire normally
-     *   }
-     * }}</pre>
-     *
-     * @return {@code true} if there is a queued thread preceding the
-     *         current thread, and {@code false} if the current thread
-     *         is at the head of the queue or the queue is empty
-     * @since 1.7
+     * 查询是否有任何线程等待获取的时间比当前线程长。
      */
     public final boolean hasQueuedPredecessors() {
         Node h, s;
@@ -1074,12 +788,14 @@ public abstract class AbstractQueuedLongSynchronizer
             if ((s = h.next) == null || s.waitStatus > 0) {
                 s = null; // traverse in case of concurrent cancellation
                 for (Node p = tail; p != h && p != null; p = p.prev) {
-                    if (p.waitStatus <= 0)
+                    if (p.waitStatus <= 0) {
                         s = p;
+                    }
                 }
             }
-            if (s != null && s.thread != Thread.currentThread())
+            if (s != null && s.thread != Thread.currentThread()) {
                 return true;
+            }
         }
         return false;
     }
@@ -1087,92 +803,68 @@ public abstract class AbstractQueuedLongSynchronizer
     // Instrumentation and monitoring methods
 
     /**
-     * Returns an estimate of the number of threads waiting to
-     * acquire.  The value is only an estimate because the number of
-     * threads may change dynamically while this method traverses
-     * internal data structures.  This method is designed for use in
-     * monitoring system state, not for synchronization control.
-     *
-     * @return the estimated number of threads waiting to acquire
+     * 返回等待获取的线程数的估计值。 该值只是一个估计值，因为当此方法遍历内部数据结构时，线程数可能会动态变化。
+     * 该方法设计用于监视系统状态，而不是用于同步控制。
      */
     public final int getQueueLength() {
         int n = 0;
         for (Node p = tail; p != null; p = p.prev) {
-            if (p.thread != null)
+            if (p.thread != null) {
                 ++n;
+            }
         }
         return n;
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
-     * acquire.  Because the actual set of threads may change
-     * dynamically while constructing this result, the returned
-     * collection is only a best-effort estimate.  The elements of the
-     * returned collection are in no particular order.  This method is
-     * designed to facilitate construction of subclasses that provide
-     * more extensive monitoring facilities.
-     *
-     * @return the collection of threads
+     * 返回一个包含可能正在等待获取的线程的集合。 由于在构造此结果时实际线程集可能会动态更改，因此返回的集合只是尽力而为的估计。
+     * 返回集合的元素没有特定的顺序。 此方法旨在促进子类的构建，以提供更广泛的监视设施。
      */
     public final Collection<Thread> getQueuedThreads() {
         ArrayList<Thread> list = new ArrayList<>();
         for (Node p = tail; p != null; p = p.prev) {
             Thread t = p.thread;
-            if (t != null)
+            if (t != null) {
                 list.add(t);
+            }
         }
         return list;
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
-     * acquire in exclusive mode. This has the same properties
-     * as {@link #getQueuedThreads} except that it only returns
-     * those threads waiting due to an exclusive acquire.
-     *
-     * @return the collection of threads
+     * 返回一个包含可能在独占模式下等待获取的线程的集合。 它与 getQueuedThreads 具有相同的属性，除了它只返回由于独占获取而等待的线程。
      */
     public final Collection<Thread> getExclusiveQueuedThreads() {
         ArrayList<Thread> list = new ArrayList<>();
         for (Node p = tail; p != null; p = p.prev) {
             if (!p.isShared()) {
                 Thread t = p.thread;
-                if (t != null)
+                if (t != null) {
                     list.add(t);
+                }
             }
         }
         return list;
     }
 
     /**
-     * Returns a collection containing threads that may be waiting to
-     * acquire in shared mode. This has the same properties
-     * as {@link #getQueuedThreads} except that it only returns
-     * those threads waiting due to a shared acquire.
-     *
-     * @return the collection of threads
+     * 返回一个包含可能在共享模式下等待获取的线程的集合。 它与 getQueuedThreads 具有相同的属性，除了它只返回由于共享获取而等待的那些线程。
      */
     public final Collection<Thread> getSharedQueuedThreads() {
         ArrayList<Thread> list = new ArrayList<>();
         for (Node p = tail; p != null; p = p.prev) {
             if (p.isShared()) {
                 Thread t = p.thread;
-                if (t != null)
+                if (t != null) {
                     list.add(t);
+                }
             }
         }
         return list;
     }
 
     /**
-     * Returns a string identifying this synchronizer, as well as its state.
-     * The state, in brackets, includes the String {@code "State ="}
-     * followed by the current value of {@link #getState}, and either
-     * {@code "nonempty"} or {@code "empty"} depending on whether the
-     * queue is empty.
-     *
-     * @return a string identifying this synchronizer, as well as its state
+     * 返回标识此同步器及其状态的字符串。 括号中的状态包括字符串“State =”，后跟 getState 的当前值，以及“非空”或“空”，具体取决于队列是否为空。
      */
     public String toString() {
         return super.toString()
@@ -1184,106 +876,89 @@ public abstract class AbstractQueuedLongSynchronizer
     // Internal support methods for Conditions
 
     /**
-     * Returns true if a node, always one that was initially placed on
-     * a condition queue, is now waiting to reacquire on sync queue.
-     * @param node the node
-     * @return true if is reacquiring
+     * 如果一个节点（始终是最初放置在条件队列中的节点）现在正在等待重新获取同步队列，则返回 true。
      */
     final boolean isOnSyncQueue(Node node) {
-        if (node.waitStatus == Node.CONDITION || node.prev == null)
+        if (node.waitStatus == Node.CONDITION || node.prev == null) {
             return false;
-        if (node.next != null) // If has successor, it must be on queue
+        }
+        if (node.next != null) { // If has successor, it must be on queue
             return true;
-        /*
-         * node.prev can be non-null, but not yet on queue because
-         * the CAS to place it on queue can fail. So we have to
-         * traverse from tail to make sure it actually made it.  It
-         * will always be near the tail in calls to this method, and
-         * unless the CAS failed (which is unlikely), it will be
-         * there, so we hardly ever traverse much.
+        }
+        /**
+         * node.prev 可以为非空，但尚未在队列中，因为将其放入队列的 CAS 可能会失败。 所以我们必须从尾部遍历以确保它确实做到了。
+         * 在调用这个方法时它总是靠近尾部，除非 CAS 失败（这不太可能），它会在那里，所以我们几乎不会遍历太多。
          */
         return findNodeFromTail(node);
     }
 
     /**
-     * Returns true if node is on sync queue by searching backwards from tail.
-     * Called only when needed by isOnSyncQueue.
-     * @return true if present
+     * 如果节点通过从尾部向后搜索在同步队列上，则返回 true。 仅在 isOnSyncQueue 需要时调用。
      */
     private boolean findNodeFromTail(Node node) {
         // We check for node first, since it's likely to be at or near tail.
         // tail is known to be non-null, so we could re-order to "save"
         // one null check, but we leave it this way to help the VM.
         for (Node p = tail;;) {
-            if (p == node)
+            if (p == node) {
                 return true;
-            if (p == null)
+            }
+            if (p == null) {
                 return false;
+            }
             p = p.prev;
         }
     }
 
     /**
-     * Transfers a node from a condition queue onto sync queue.
-     * Returns true if successful.
-     * @param node the node
-     * @return true if successfully transferred (else the node was
-     * cancelled before signal)
+     * 将节点从条件队列转移到同步队列。 如果成功则返回真。
      */
     final boolean transferForSignal(Node node) {
         /*
          * If cannot change waitStatus, the node has been cancelled.
          */
-        if (!node.compareAndSetWaitStatus(Node.CONDITION, 0))
+        if (!node.compareAndSetWaitStatus(Node.CONDITION, 0)) {
             return false;
+        }
 
-        /*
-         * Splice onto queue and try to set waitStatus of predecessor to
-         * indicate that thread is (probably) waiting. If cancelled or
-         * attempt to set waitStatus fails, wake up to resync (in which
-         * case the waitStatus can be transiently and harmlessly wrong).
+        /**
+         * 拼接到队列并尝试设置前驱的 waitStatus 以指示线程（可能）正在等待。
+         * 如果取消或尝试设置 waitStatus 失败，则唤醒以重新同步（在这种情况下，waitStatus 可能是暂时且无害的错误）。
          */
         Node p = enq(node);
         int ws = p.waitStatus;
-        if (ws > 0 || !p.compareAndSetWaitStatus(ws, Node.SIGNAL))
+        if (ws > 0 || !p.compareAndSetWaitStatus(ws, Node.SIGNAL)) {
             LockSupport.unpark(node.thread);
+        }
         return true;
     }
 
     /**
-     * Transfers node, if necessary, to sync queue after a cancelled wait.
-     * Returns true if thread was cancelled before being signalled.
-     *
-     * @param node the node
-     * @return true if cancelled before the node was signalled
+     * 如有必要，在取消等待后将节点传输到同步队列。 如果线程在发出信号之前被取消，则返回 true。
      */
     final boolean transferAfterCancelledWait(Node node) {
         if (node.compareAndSetWaitStatus(Node.CONDITION, 0)) {
             enq(node);
             return true;
         }
-        /*
-         * If we lost out to a signal(), then we can't proceed
-         * until it finishes its enq().  Cancelling during an
-         * incomplete transfer is both rare and transient, so just
-         * spin.
+        /**
+         * 如果我们输给了一个 signal()，那么在它完成 enq() 之前我们不能继续。 在不完整的转移期间取消既罕见又短暂，因此只需旋转即可。
          */
-        while (!isOnSyncQueue(node))
+        while (!isOnSyncQueue(node)) {
             Thread.yield();
+        }
         return false;
     }
 
     /**
-     * Invokes release with current state value; returns saved state.
-     * Cancels node and throws exception on failure.
-     * @param node the condition node for this wait
-     * @return previous sync state
+     * 使用当前状态值调用 release； 返回保存状态。 取消节点并在失败时抛出异常。
      */
     final long fullyRelease(Node node) {
         try {
             long savedState = getState();
-            if (release(savedState))
+            if (release(savedState)) {
                 return savedState;
+            }
             throw new IllegalMonitorStateException();
         } catch (Throwable t) {
             node.waitStatus = Node.CANCELLED;
@@ -1294,98 +969,50 @@ public abstract class AbstractQueuedLongSynchronizer
     // Instrumentation methods for conditions
 
     /**
-     * Queries whether the given ConditionObject
-     * uses this synchronizer as its lock.
-     *
-     * @param condition the condition
-     * @return {@code true} if owned
-     * @throws NullPointerException if the condition is null
+     * 查询给定的 ConditionObject 是否使用此同步器作为其锁。
      */
     public final boolean owns(ConditionObject condition) {
         return condition.isOwnedBy(this);
     }
 
     /**
-     * Queries whether any threads are waiting on the given condition
-     * associated with this synchronizer. Note that because timeouts
-     * and interrupts may occur at any time, a {@code true} return
-     * does not guarantee that a future {@code signal} will awaken
-     * any threads.  This method is designed primarily for use in
-     * monitoring of the system state.
-     *
-     * @param condition the condition
-     * @return {@code true} if there are any waiting threads
-     * @throws IllegalMonitorStateException if exclusive synchronization
-     *         is not held
-     * @throws IllegalArgumentException if the given condition is
-     *         not associated with this synchronizer
-     * @throws NullPointerException if the condition is null
+     * 查询是否有任何线程正在等待与此同步器关联的给定条件。 请注意，因为超时和中断可能随时发生，真正的返回并不能保证未来的信号会唤醒任何线程。
+     * 该方法主要用于监控系统状态。
      */
     public final boolean hasWaiters(ConditionObject condition) {
-        if (!owns(condition))
+        if (!owns(condition)) {
             throw new IllegalArgumentException("Not owner");
+        }
         return condition.hasWaiters();
     }
 
     /**
-     * Returns an estimate of the number of threads waiting on the
-     * given condition associated with this synchronizer. Note that
-     * because timeouts and interrupts may occur at any time, the
-     * estimate serves only as an upper bound on the actual number of
-     * waiters.  This method is designed for use in monitoring system
-     * state, not for synchronization control.
-     *
-     * @param condition the condition
-     * @return the estimated number of waiting threads
-     * @throws IllegalMonitorStateException if exclusive synchronization
-     *         is not held
-     * @throws IllegalArgumentException if the given condition is
-     *         not associated with this synchronizer
-     * @throws NullPointerException if the condition is null
+     * 返回等待与此同步器关联的给定条件的线程数的估计值。 请注意，由于超时和中断可能随时发生，因此估计值仅用作实际服务员人数的上限。
+     * 该方法设计用于监视系统状态，而不是用于同步控制。
      */
     public final int getWaitQueueLength(ConditionObject condition) {
-        if (!owns(condition))
+        if (!owns(condition)) {
             throw new IllegalArgumentException("Not owner");
+        }
         return condition.getWaitQueueLength();
     }
 
     /**
-     * Returns a collection containing those threads that may be
-     * waiting on the given condition associated with this
-     * synchronizer.  Because the actual set of threads may change
-     * dynamically while constructing this result, the returned
-     * collection is only a best-effort estimate. The elements of the
-     * returned collection are in no particular order.
-     *
-     * @param condition the condition
-     * @return the collection of threads
-     * @throws IllegalMonitorStateException if exclusive synchronization
-     *         is not held
-     * @throws IllegalArgumentException if the given condition is
-     *         not associated with this synchronizer
-     * @throws NullPointerException if the condition is null
+     * 返回一个包含可能正在等待与此同步器关联的给定条件的线程的集合。
+     * 由于在构造此结果时实际线程集可能会动态更改，因此返回的集合只是尽力而为的估计。 返回集合的元素没有特定的顺序。
      */
     public final Collection<Thread> getWaitingThreads(ConditionObject condition) {
-        if (!owns(condition))
+        if (!owns(condition)) {
             throw new IllegalArgumentException("Not owner");
+        }
         return condition.getWaitingThreads();
     }
 
     /**
-     * Condition implementation for a {@link AbstractQueuedLongSynchronizer}
-     * serving as the basis of a {@link Lock} implementation.
-     *
-     * <p>Method documentation for this class describes mechanics,
-     * not behavioral specifications from the point of view of Lock
-     * and Condition users. Exported versions of this class will in
-     * general need to be accompanied by documentation describing
-     * condition semantics that rely on those of the associated
-     * {@code AbstractQueuedLongSynchronizer}.
-     *
-     * <p>This class is Serializable, but all fields are transient,
-     * so deserialized conditions have no waiters.
-     *
-     * @since 1.6
+     * 作为 Lock 实现基础的 AbstractQueuedLongSynchronizer 的条件实现。
+     * 此类的方法文档从锁定和条件用户的角度描述了机制，而不是行为规范。
+     * 此类的导出版本通常需要随附描述依赖于关联 AbstractQueuedLongSynchronizer 的条件语义的文档。
+     * 此类是可序列化的，但所有字段都是瞬态的，因此反序列化的条件没有等待者。
      */
     public class ConditionObject implements Condition, java.io.Serializable {
         private static final long serialVersionUID = 1173984872572414699L;
@@ -1402,8 +1029,7 @@ public abstract class AbstractQueuedLongSynchronizer
         // Internal methods
 
         /**
-         * Adds a new waiter to wait queue.
-         * @return its new wait node
+         * 添加一个新的服务员到等待队列。
          */
         private Node addConditionWaiter() {
             if (!isHeldExclusively())
@@ -1417,32 +1043,30 @@ public abstract class AbstractQueuedLongSynchronizer
 
             Node node = new Node(Node.CONDITION);
 
-            if (t == null)
+            if (t == null) {
                 firstWaiter = node;
-            else
+            } else {
                 t.nextWaiter = node;
+            }
             lastWaiter = node;
             return node;
         }
 
         /**
-         * Removes and transfers nodes until hit non-cancelled one or
-         * null. Split out from signal in part to encourage compilers
-         * to inline the case of no waiters.
-         * @param first (non-null) the first node on condition queue
+         * 删除并传输节点，直到命中未取消的 1 或为空。 从信号中分离出来部分是为了鼓励编译器内联没有服务员的情况。
          */
         private void doSignal(Node first) {
             do {
-                if ( (firstWaiter = first.nextWaiter) == null)
+                if ((firstWaiter = first.nextWaiter) == null) {
                     lastWaiter = null;
+                }
                 first.nextWaiter = null;
             } while (!transferForSignal(first) &&
                      (first = firstWaiter) != null);
         }
 
         /**
-         * Removes and transfers all nodes.
-         * @param first (non-null) the first node on condition queue
+         * 删除并转移所有节点。
          */
         private void doSignalAll(Node first) {
             lastWaiter = firstWaiter = null;
@@ -1455,18 +1079,10 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Unlinks cancelled waiter nodes from condition queue.
-         * Called only while holding lock. This is called when
-         * cancellation occurred during condition wait, and upon
-         * insertion of a new waiter when lastWaiter is seen to have
-         * been cancelled. This method is needed to avoid garbage
-         * retention in the absence of signals. So even though it may
-         * require a full traversal, it comes into play only when
-         * timeouts or cancellations occur in the absence of
-         * signals. It traverses all nodes rather than stopping at a
-         * particular target to unlink all pointers to garbage nodes
-         * without requiring many re-traversals during cancellation
-         * storms.
+         * 从条件队列中取消链接已取消的等待节点。 仅在持有锁时调用。
+         * 当在条件等待期间发生取消时，以及在看到 lastWaiter 已被取消时插入新的服务员时，将调用此方法。
+         * 需要这种方法来避免在没有信号的情况下垃圾保留。 因此，即使它可能需要完全遍历，它也仅在没有信号的情况下发生超时或取消时才起作用。
+         * 它遍历所有节点而不是在特定目标处停止以取消所有指向垃圾节点的指针的链接，而无需在取消风暴期间进行多次重新遍历。
          */
         private void unlinkCancelledWaiters() {
             Node t = firstWaiter;
@@ -1475,15 +1091,17 @@ public abstract class AbstractQueuedLongSynchronizer
                 Node next = t.nextWaiter;
                 if (t.waitStatus != Node.CONDITION) {
                     t.nextWaiter = null;
-                    if (trail == null)
+                    if (trail == null) {
                         firstWaiter = next;
-                    else
+                    } else {
                         trail.nextWaiter = next;
-                    if (next == null)
+                    }
+                    if (next == null) {
                         lastWaiter = trail;
-                }
-                else
+                    }
+                } else {
                     trail = t;
+                }
                 t = next;
             }
         }
@@ -1491,46 +1109,37 @@ public abstract class AbstractQueuedLongSynchronizer
         // public methods
 
         /**
-         * Moves the longest-waiting thread, if one exists, from the
-         * wait queue for this condition to the wait queue for the
-         * owning lock.
-         *
-         * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
-         *         returns {@code false}
+         * 将等待时间最长的线程（如果存在）从此条件的等待队列移动到拥有锁的等待队列。
          */
         public final void signal() {
-            if (!isHeldExclusively())
+            if (!isHeldExclusively()) {
                 throw new IllegalMonitorStateException();
+            }
             Node first = firstWaiter;
-            if (first != null)
+            if (first != null) {
                 doSignal(first);
+            }
         }
 
         /**
-         * Moves all threads from the wait queue for this condition to
-         * the wait queue for the owning lock.
-         *
-         * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
-         *         returns {@code false}
+         * 将所有线程从此条件的等待队列移动到拥有锁的等待队列。
          */
         public final void signalAll() {
-            if (!isHeldExclusively())
+            if (!isHeldExclusively()) {
                 throw new IllegalMonitorStateException();
+            }
             Node first = firstWaiter;
-            if (first != null)
+            if (first != null) {
                 doSignalAll(first);
+            }
         }
 
         /**
-         * Implements uninterruptible condition wait.
-         * <ol>
-         * <li>Save lock state returned by {@link #getState}.
-         * <li>Invoke {@link #release} with saved state as argument,
-         *     throwing IllegalMonitorStateException if it fails.
-         * <li>Block until signalled.
-         * <li>Reacquire by invoking specialized version of
-         *     {@link #acquire} with saved state as argument.
-         * </ol>
+         * 实现不间断条件等待。
+         *   1. 保存由 getState 返回的锁状态。
+         *   2. 以保存的状态作为参数调用 release，如果失败则抛出 IllegalMonitorStateException。
+         *   3. 阻塞直到发出信号。
+         *   4. 通过以保存的状态作为参数调用特定版本的获取来重新获取。
          */
         public final void awaitUninterruptibly() {
             Node node = addConditionWaiter();
@@ -1538,29 +1147,27 @@ public abstract class AbstractQueuedLongSynchronizer
             boolean interrupted = false;
             while (!isOnSyncQueue(node)) {
                 LockSupport.park(this);
-                if (Thread.interrupted())
+                if (Thread.interrupted()) {
                     interrupted = true;
+                }
             }
-            if (acquireQueued(node, savedState) || interrupted)
+            if (acquireQueued(node, savedState) || interrupted) {
                 selfInterrupt();
+            }
         }
 
-        /*
-         * For interruptible waits, we need to track whether to throw
-         * InterruptedException, if interrupted while blocked on
-         * condition, versus reinterrupt current thread, if
-         * interrupted while blocked waiting to re-acquire.
+        /**
+         * 对于可中断的等待，我们需要跟踪是否抛出 InterruptedException，
+         * 如果在条件阻塞时中断，与重新中断当前线程，如果在阻塞等待重新获取时中断。
          */
 
-        /** Mode meaning to reinterrupt on exit from wait */
+        /** 模式意味着在退出等待时重新中断 */
         private static final int REINTERRUPT =  1;
-        /** Mode meaning to throw InterruptedException on exit from wait */
+        /** 模式意味着在退出等待时抛出 InterruptedException */
         private static final int THROW_IE    = -1;
 
         /**
-         * Checks for interrupt, returning THROW_IE if interrupted
-         * before signalled, REINTERRUPT if after signalled, or
-         * 0 if not interrupted.
+         * 检查中断，如果在发出信号之前被中断，则返回 THROW_IE，如果发出信号则返回 REINTERRUPT，如果未中断则返回 0。
          */
         private int checkInterruptWhileWaiting(Node node) {
             return Thread.interrupted() ?
@@ -1569,66 +1176,64 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Throws InterruptedException, reinterrupts current thread, or
-         * does nothing, depending on mode.
+         * 根据模式，抛出 InterruptedException、重新中断当前线程或不执行任何操作。
          */
         private void reportInterruptAfterWait(int interruptMode)
             throws InterruptedException {
-            if (interruptMode == THROW_IE)
+            if (interruptMode == THROW_IE) {
                 throw new InterruptedException();
-            else if (interruptMode == REINTERRUPT)
+            } else if (interruptMode == REINTERRUPT) {
                 selfInterrupt();
+            }
         }
 
         /**
-         * Implements interruptible condition wait.
-         * <ol>
-         * <li>If current thread is interrupted, throw InterruptedException.
-         * <li>Save lock state returned by {@link #getState}.
-         * <li>Invoke {@link #release} with saved state as argument,
-         *     throwing IllegalMonitorStateException if it fails.
-         * <li>Block until signalled or interrupted.
-         * <li>Reacquire by invoking specialized version of
-         *     {@link #acquire} with saved state as argument.
-         * <li>If interrupted while blocked in step 4, throw InterruptedException.
-         * </ol>
+         * 实现可中断条件等待。
+         *   1. 如果当前线程被中断，则抛出 InterruptedException。
+         *   2. 保存由 getState 返回的锁状态。
+         *   3. 以保存的状态作为参数调用 release，如果失败则抛出 IllegalMonitorStateException。
+         *   4. 阻塞直到发出信号或被中断。
+         *   5. 通过以保存的状态作为参数调用特定版本的获取来重新获取。
+         *   6. 如果在步骤 4 中被阻塞时被中断，则抛出 InterruptedException。
          */
         public final void await() throws InterruptedException {
-            if (Thread.interrupted())
+            if (Thread.interrupted()) {
                 throw new InterruptedException();
+            }
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {
                 LockSupport.park(this);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0) {
                     break;
+                }
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+            if (acquireQueued(node, savedState) && interruptMode != THROW_IE) {
                 interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null) // clean up if cancelled
+            }
+            if (node.nextWaiter != null) { // clean up if cancelled
                 unlinkCancelledWaiters();
-            if (interruptMode != 0)
+            }
+            if (interruptMode != 0) {
                 reportInterruptAfterWait(interruptMode);
+            }
         }
 
         /**
-         * Implements timed condition wait.
-         * <ol>
-         * <li>If current thread is interrupted, throw InterruptedException.
-         * <li>Save lock state returned by {@link #getState}.
-         * <li>Invoke {@link #release} with saved state as argument,
-         *     throwing IllegalMonitorStateException if it fails.
-         * <li>Block until signalled, interrupted, or timed out.
-         * <li>Reacquire by invoking specialized version of
-         *     {@link #acquire} with saved state as argument.
-         * <li>If interrupted while blocked in step 4, throw InterruptedException.
-         * </ol>
+         * 实现定时条件等待。
+         *   1. 如果当前线程被中断，则抛出 InterruptedException。
+         *   2. 保存由 getState 返回的锁状态。
+         *   3. 以保存的状态作为参数调用 release，如果失败则抛出 IllegalMonitorStateException。
+         *   4. 阻塞直到发出信号、中断或超时。
+         *   5. 通过以保存的状态作为参数调用特定版本的获取来重新获取。
+         *   6. 如果在步骤 4 中被阻塞时被中断，则抛出 InterruptedException。
          */
         public final long awaitNanos(long nanosTimeout)
                 throws InterruptedException {
-            if (Thread.interrupted())
+            if (Thread.interrupted()) {
                 throw new InterruptedException();
+            }
             // We don't check for nanosTimeout <= 0L here, to allow
             // awaitNanos(0) as a way to "yield the lock".
             final long deadline = System.nanoTime() + nanosTimeout;
@@ -1641,41 +1246,43 @@ public abstract class AbstractQueuedLongSynchronizer
                     transferAfterCancelledWait(node);
                     break;
                 }
-                if (nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD)
+                if (nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD) {
                     LockSupport.parkNanos(this, nanosTimeout);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                }
+                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0) {
                     break;
+                }
                 nanosTimeout = deadline - System.nanoTime();
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+            if (acquireQueued(node, savedState) && interruptMode != THROW_IE) {
                 interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
+            }
+            if (node.nextWaiter != null) {
                 unlinkCancelledWaiters();
-            if (interruptMode != 0)
+            }
+            if (interruptMode != 0) {
                 reportInterruptAfterWait(interruptMode);
+            }
             long remaining = deadline - System.nanoTime(); // avoid overflow
             return (remaining <= initialNanos) ? remaining : Long.MIN_VALUE;
         }
 
         /**
-         * Implements absolute timed condition wait.
-         * <ol>
-         * <li>If current thread is interrupted, throw InterruptedException.
-         * <li>Save lock state returned by {@link #getState}.
-         * <li>Invoke {@link #release} with saved state as argument,
-         *     throwing IllegalMonitorStateException if it fails.
-         * <li>Block until signalled, interrupted, or timed out.
-         * <li>Reacquire by invoking specialized version of
-         *     {@link #acquire} with saved state as argument.
-         * <li>If interrupted while blocked in step 4, throw InterruptedException.
-         * <li>If timed out while blocked in step 4, return false, else true.
-         * </ol>
+         * 实现绝对定时条件等待。
+         *   1. 如果当前线程被中断，则抛出 InterruptedException。
+         *   2. 保存由 getState 返回的锁状态。
+         *   3. 以保存的状态作为参数调用 release，如果失败则抛出 IllegalMonitorStateException。
+         *   4. 阻塞直到发出信号、中断或超时。
+         *   5. 通过以保存的状态作为参数调用特定版本的获取来重新获取。
+         *   6. 如果在步骤 4 中被阻塞时被中断，则抛出 InterruptedException。
+         *   7. 如果在步骤 4 中阻塞时超时，则返回 false，否则返回 true。
          */
         public final boolean awaitUntil(Date deadline)
                 throws InterruptedException {
             long abstime = deadline.getTime();
-            if (Thread.interrupted())
+            if (Thread.interrupted()) {
                 throw new InterruptedException();
+            }
             Node node = addConditionWaiter();
             long savedState = fullyRelease(node);
             boolean timedout = false;
@@ -1686,37 +1293,38 @@ public abstract class AbstractQueuedLongSynchronizer
                     break;
                 }
                 LockSupport.parkUntil(this, abstime);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0) {
                     break;
+                }
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+            if (acquireQueued(node, savedState) && interruptMode != THROW_IE) {
                 interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
+            }
+            if (node.nextWaiter != null) {
                 unlinkCancelledWaiters();
-            if (interruptMode != 0)
+            }
+            if (interruptMode != 0) {
                 reportInterruptAfterWait(interruptMode);
+            }
             return !timedout;
         }
 
         /**
-         * Implements timed condition wait.
-         * <ol>
-         * <li>If current thread is interrupted, throw InterruptedException.
-         * <li>Save lock state returned by {@link #getState}.
-         * <li>Invoke {@link #release} with saved state as argument,
-         *     throwing IllegalMonitorStateException if it fails.
-         * <li>Block until signalled, interrupted, or timed out.
-         * <li>Reacquire by invoking specialized version of
-         *     {@link #acquire} with saved state as argument.
-         * <li>If interrupted while blocked in step 4, throw InterruptedException.
-         * <li>If timed out while blocked in step 4, return false, else true.
-         * </ol>
+         * 实现定时条件等待。
+         *   1. 如果当前线程被中断，则抛出 InterruptedException。
+         *   2. 保存由 getState 返回的锁状态。
+         *   3. 以保存的状态作为参数调用 release，如果失败则抛出 IllegalMonitorStateException。
+         *   4. 阻塞直到发出信号、中断或超时。
+         *   5. 通过以保存的状态作为参数调用特定版本的获取来重新获取。
+         *   6. 如果在步骤 4 中被阻塞时被中断，则抛出 InterruptedException。
+         *   7. 如果在步骤 4 中阻塞时超时，则返回 false，否则返回 true。
          */
         public final boolean await(long time, TimeUnit unit)
                 throws InterruptedException {
             long nanosTimeout = unit.toNanos(time);
-            if (Thread.interrupted())
+            if (Thread.interrupted()) {
                 throw new InterruptedException();
+            }
             // We don't check for nanosTimeout <= 0L here, to allow
             // await(0, unit) as a way to "yield the lock".
             final long deadline = System.nanoTime() + nanosTimeout;
@@ -1729,79 +1337,69 @@ public abstract class AbstractQueuedLongSynchronizer
                     timedout = transferAfterCancelledWait(node);
                     break;
                 }
-                if (nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD)
+                if (nanosTimeout > SPIN_FOR_TIMEOUT_THRESHOLD) {
                     LockSupport.parkNanos(this, nanosTimeout);
-                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                }
+                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0) {
                     break;
+                }
                 nanosTimeout = deadline - System.nanoTime();
             }
-            if (acquireQueued(node, savedState) && interruptMode != THROW_IE)
+            if (acquireQueued(node, savedState) && interruptMode != THROW_IE) {
                 interruptMode = REINTERRUPT;
-            if (node.nextWaiter != null)
+            }
+            if (node.nextWaiter != null) {
                 unlinkCancelledWaiters();
-            if (interruptMode != 0)
+            }
+            if (interruptMode != 0) {
                 reportInterruptAfterWait(interruptMode);
+            }
             return !timedout;
         }
 
         //  support for instrumentation
 
         /**
-         * Returns true if this condition was created by the given
-         * synchronization object.
-         *
-         * @return {@code true} if owned
+         * 如果此条件是由给定的同步对象创建的，则返回 true。
          */
         final boolean isOwnedBy(AbstractQueuedLongSynchronizer sync) {
             return sync == AbstractQueuedLongSynchronizer.this;
         }
 
         /**
-         * Queries whether any threads are waiting on this condition.
-         * Implements {@link AbstractQueuedLongSynchronizer#hasWaiters(ConditionObject)}.
-         *
-         * @return {@code true} if there are any waiting threads
-         * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
-         *         returns {@code false}
+         * 查询是否有线程在此条件下等待。 实现 hasWaiters(AbstractQueuedLongSynchronizer.ConditionObject)。
          */
         protected final boolean hasWaiters() {
-            if (!isHeldExclusively())
+            if (!isHeldExclusively()) {
                 throw new IllegalMonitorStateException();
+            }
             for (Node w = firstWaiter; w != null; w = w.nextWaiter) {
-                if (w.waitStatus == Node.CONDITION)
+                if (w.waitStatus == Node.CONDITION) {
                     return true;
+                }
             }
             return false;
         }
 
         /**
-         * Returns an estimate of the number of threads waiting on
-         * this condition.
-         * Implements {@link AbstractQueuedLongSynchronizer#getWaitQueueLength(ConditionObject)}.
-         *
-         * @return the estimated number of waiting threads
-         * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
-         *         returns {@code false}
+         * 返回等待此条件的线程数的估计值。 实现 getWaitQueueLength(AbstractQueuedLongSynchronizer.ConditionObject)。
          */
         protected final int getWaitQueueLength() {
-            if (!isHeldExclusively())
+            if (!isHeldExclusively()) {
                 throw new IllegalMonitorStateException();
+            }
             int n = 0;
             for (Node w = firstWaiter; w != null; w = w.nextWaiter) {
-                if (w.waitStatus == Node.CONDITION)
+                if (w.waitStatus == Node.CONDITION) {
                     ++n;
+                }
             }
             return n;
         }
 
         /**
-         * Returns a collection containing those threads that may be
-         * waiting on this Condition.
-         * Implements {@link AbstractQueuedLongSynchronizer#getWaitingThreads(ConditionObject)}.
-         *
-         * @return the collection of threads
-         * @throws IllegalMonitorStateException if {@link #isHeldExclusively}
-         *         returns {@code false}
+         * 返回一个包含可能正在等待此 Condition 的线程的集合。
+         * 实现 getWaitingThreads(AbstractQueuedLongSynchronizer.ConditionObject)。
          */
         protected final Collection<Thread> getWaitingThreads() {
             if (!isHeldExclusively())
@@ -1839,7 +1437,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Initializes head and tail fields on first contention.
+     * 在第一次争用时初始化头字段和尾字段。
      */
     private final void initializeSyncQueue() {
         Node h;
@@ -1848,7 +1446,7 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * CASes tail field.
+     * CASes 尾字段。
      */
     private final boolean compareAndSetTail(Node expect, Node update) {
         return TAIL.compareAndSet(this, expect, update);
