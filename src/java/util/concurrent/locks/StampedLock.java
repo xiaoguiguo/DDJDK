@@ -1,38 +1,3 @@
-/*
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
-/*
- *
- *
- *
- *
- *
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
-
 package java.util.concurrent.locks;
 
 import java.lang.invoke.MethodHandles;
@@ -41,330 +6,45 @@ import java.util.concurrent.TimeUnit;
 import jdk.internal.vm.annotation.ReservedStackAccess;
 
 /**
- * A capability-based lock with three modes for controlling read/write
- * access.  The state of a StampedLock consists of a version and mode.
- * Lock acquisition methods return a stamp that represents and
- * controls access with respect to a lock state; "try" versions of
- * these methods may instead return the special value zero to
- * represent failure to acquire access. Lock release and conversion
- * methods require stamps as arguments, and fail if they do not match
- * the state of the lock. The three modes are:
+ * StampedLock 支持三种模式，分别是：写锁、悲观读锁和乐观读
+ *     1)写锁、悲观读锁的语义和 ReadWriteLock 的写锁、读锁的语义非常类似，
+ *     2)允许多个线程同时获取悲观读锁，但是只允许一个线程获取写锁，写锁和悲观读锁是互斥的
+ *     3)不同的是：StampedLock 里的写锁和悲观读锁加锁成功之后，都会返回一个 stamp；然后解锁的时候，需要传入这个 stamp
  *
- * <ul>
- *
- *  <li><b>Writing.</b> Method {@link #writeLock} possibly blocks
- *   waiting for exclusive access, returning a stamp that can be used
- *   in method {@link #unlockWrite} to release the lock. Untimed and
- *   timed versions of {@code tryWriteLock} are also provided. When
- *   the lock is held in write mode, no read locks may be obtained,
- *   and all optimistic read validations will fail.
- *
- *  <li><b>Reading.</b> Method {@link #readLock} possibly blocks
- *   waiting for non-exclusive access, returning a stamp that can be
- *   used in method {@link #unlockRead} to release the lock. Untimed
- *   and timed versions of {@code tryReadLock} are also provided.
- *
- *  <li><b>Optimistic Reading.</b> Method {@link #tryOptimisticRead}
- *   returns a non-zero stamp only if the lock is not currently held
- *   in write mode. Method {@link #validate} returns true if the lock
- *   has not been acquired in write mode since obtaining a given
- *   stamp.  This mode can be thought of as an extremely weak version
- *   of a read-lock, that can be broken by a writer at any time.  The
- *   use of optimistic mode for short read-only code segments often
- *   reduces contention and improves throughput.  However, its use is
- *   inherently fragile.  Optimistic read sections should only read
- *   fields and hold them in local variables for later use after
- *   validation. Fields read while in optimistic mode may be wildly
- *   inconsistent, so usage applies only when you are familiar enough
- *   with data representations to check consistency and/or repeatedly
- *   invoke method {@code validate()}.  For example, such steps are
- *   typically required when first reading an object or array
- *   reference, and then accessing one of its fields, elements or
- *   methods.
- *
- * </ul>
- *
- * <p>This class also supports methods that conditionally provide
- * conversions across the three modes. For example, method {@link
- * #tryConvertToWriteLock} attempts to "upgrade" a mode, returning
- * a valid write stamp if (1) already in writing mode (2) in reading
- * mode and there are no other readers or (3) in optimistic mode and
- * the lock is available. The forms of these methods are designed to
- * help reduce some of the code bloat that otherwise occurs in
- * retry-based designs.
- *
- * <p>StampedLocks are designed for use as internal utilities in the
- * development of thread-safe components. Their use relies on
- * knowledge of the internal properties of the data, objects, and
- * methods they are protecting.  They are not reentrant, so locked
- * bodies should not call other unknown methods that may try to
- * re-acquire locks (although you may pass a stamp to other methods
- * that can use or convert it).  The use of read lock modes relies on
- * the associated code sections being side-effect-free.  Unvalidated
- * optimistic read sections cannot call methods that are not known to
- * tolerate potential inconsistencies.  Stamps use finite
- * representations, and are not cryptographically secure (i.e., a
- * valid stamp may be guessable). Stamp values may recycle after (no
- * sooner than) one year of continuous operation. A stamp held without
- * use or validation for longer than this period may fail to validate
- * correctly.  StampedLocks are serializable, but always deserialize
- * into initial unlocked state, so they are not useful for remote
- * locking.
- *
- * <p>Like {@link java.util.concurrent.Semaphore Semaphore}, but unlike most
- * {@link Lock} implementations, StampedLocks have no notion of ownership.
- * Locks acquired in one thread can be released or converted in another.
- *
- * <p>The scheduling policy of StampedLock does not consistently
- * prefer readers over writers or vice versa.  All "try" methods are
- * best-effort and do not necessarily conform to any scheduling or
- * fairness policy. A zero return from any "try" method for acquiring
- * or converting locks does not carry any information about the state
- * of the lock; a subsequent invocation may succeed.
- *
- * <p>Because it supports coordinated usage across multiple lock
- * modes, this class does not directly implement the {@link Lock} or
- * {@link ReadWriteLock} interfaces. However, a StampedLock may be
- * viewed {@link #asReadLock()}, {@link #asWriteLock()}, or {@link
- * #asReadWriteLock()} in applications requiring only the associated
- * set of functionality.
- *
- * <p><b>Sample Usage.</b> The following illustrates some usage idioms
- * in a class that maintains simple two-dimensional points. The sample
- * code illustrates some try/catch conventions even though they are
- * not strictly needed here because no exceptions can occur in their
- * bodies.
- *
- * <pre> {@code
- * class Point {
- *   private double x, y;
- *   private final StampedLock sl = new StampedLock();
- *
- *   // an exclusively locked method
- *   void move(double deltaX, double deltaY) {
- *     long stamp = sl.writeLock();
- *     try {
- *       x += deltaX;
- *       y += deltaY;
- *     } finally {
- *       sl.unlockWrite(stamp);
- *     }
- *   }
- *
- *   // a read-only method
- *   // upgrade from optimistic read to read lock
- *   double distanceFromOrigin() {
- *     long stamp = sl.tryOptimisticRead();
- *     try {
- *       retryHoldingLock: for (;; stamp = sl.readLock()) {
- *         if (stamp == 0L)
- *           continue retryHoldingLock;
- *         // possibly racy reads
- *         double currentX = x;
- *         double currentY = y;
- *         if (!sl.validate(stamp))
- *           continue retryHoldingLock;
- *         return Math.hypot(currentX, currentY);
- *       }
- *     } finally {
- *       if (StampedLock.isReadLockStamp(stamp))
- *         sl.unlockRead(stamp);
- *     }
- *   }
- *
- *   // upgrade from optimistic read to write lock
- *   void moveIfAtOrigin(double newX, double newY) {
- *     long stamp = sl.tryOptimisticRead();
- *     try {
- *       retryHoldingLock: for (;; stamp = sl.writeLock()) {
- *         if (stamp == 0L)
- *           continue retryHoldingLock;
- *         // possibly racy reads
- *         double currentX = x;
- *         double currentY = y;
- *         if (!sl.validate(stamp))
- *           continue retryHoldingLock;
- *         if (currentX != 0.0 || currentY != 0.0)
- *           break;
- *         stamp = sl.tryConvertToWriteLock(stamp);
- *         if (stamp == 0L)
- *           continue retryHoldingLock;
- *         // exclusive access
- *         x = newX;
- *         y = newY;
- *         return;
- *       }
- *     } finally {
- *       if (StampedLock.isWriteLockStamp(stamp))
- *         sl.unlockWrite(stamp);
- *     }
- *   }
- *
- *   // Upgrade read lock to write lock
- *   void moveIfAtOrigin(double newX, double newY) {
- *     long stamp = sl.readLock();
- *     try {
- *       while (x == 0.0 && y == 0.0) {
- *         long ws = sl.tryConvertToWriteLock(stamp);
- *         if (ws != 0L) {
- *           stamp = ws;
- *           x = newX;
- *           y = newY;
- *           break;
- *         }
- *         else {
- *           sl.unlockRead(stamp);
- *           stamp = sl.writeLock();
- *         }
- *       }
- *     } finally {
- *       sl.unlock(stamp);
- *     }
- *   }
- * }}</pre>
- *
- * @since 1.8
- * @author Doug Lea
+ * 一种基于能力的锁，具有三种用于控制读/写访问的模式。 StampedLock 的状态由版本和模式组成。
+ * 锁定获取方法返回一个标记，表示和控制与锁定状态相关的访问；这些方法的“尝试”版本可能会返回特殊值零以表示获取访问失败。
+ * 锁释放和转换方法需要标记作为参数，如果它们与锁的状态不匹配则失败。这三种模式是：
+ *  1. 写锁。方法 writeLock 可能会阻塞等待独占访问，返回可以在方法 unlockWrite 中使用以释放锁的戳记。
+ *     还提供了不定时和定时版本的 tryWriteLock。当锁处于写模式时，可能无法获得读锁，所有乐观读验证都将失败。
+ *  2. 读锁。方法 readLock 可能会阻塞等待非独占访问，返回一个标记，可以在方法 unlockRead 中使用以释放锁。
+ *     还提供了不定时和定时版本的 tryReadLock。
+ *  3. 乐观读锁。仅当锁当前未处于写入模式时，方法 tryOptimisticRead 才返回非零标记。
+ *     如果自从获得给定的标记后没有在写入模式下获得锁，则方法 validate 返回 true。
+ *     这种模式可以被认为是读锁的一个非常弱的版本，它可以随时被写者打破。对短的只读代码段使用乐观模式通常会减少争用并提高吞吐量。
+ *     然而，它的使用本质上是脆弱的。乐观读取部分应该只读取字段并将它们保存在局部变量中以供验证后以后使用。
+ *     在乐观模式下读取的字段可能非常不一致，因此仅当您足够熟悉数据表示以检查一致性和/或重复调用方法 validate() 时才适用。
+ *     例如，当首先读取对象或数组引用，然后访问其字段、元素或方法之一时，通常需要这些步骤。
  */
 public class StampedLock implements java.io.Serializable {
-    /*
-     * Algorithmic notes:
-     *
-     * The design employs elements of Sequence locks
-     * (as used in linux kernels; see Lameter's
-     * http://www.lameter.com/gelato2005.pdf
-     * and elsewhere; see
-     * Boehm's http://www.hpl.hp.com/techreports/2012/HPL-2012-68.html)
-     * and Ordered RW locks (see Shirako et al
-     * http://dl.acm.org/citation.cfm?id=2312015)
-     *
-     * Conceptually, the primary state of the lock includes a sequence
-     * number that is odd when write-locked and even otherwise.
-     * However, this is offset by a reader count that is non-zero when
-     * read-locked.  The read count is ignored when validating
-     * "optimistic" seqlock-reader-style stamps.  Because we must use
-     * a small finite number of bits (currently 7) for readers, a
-     * supplementary reader overflow word is used when the number of
-     * readers exceeds the count field. We do this by treating the max
-     * reader count value (RBITS) as a spinlock protecting overflow
-     * updates.
-     *
-     * Waiters use a modified form of CLH lock used in
-     * AbstractQueuedSynchronizer (see its internal documentation for
-     * a fuller account), where each node is tagged (field mode) as
-     * either a reader or writer. Sets of waiting readers are grouped
-     * (linked) under a common node (field cowait) so act as a single
-     * node with respect to most CLH mechanics.  By virtue of the
-     * queue structure, wait nodes need not actually carry sequence
-     * numbers; we know each is greater than its predecessor.  This
-     * simplifies the scheduling policy to a mainly-FIFO scheme that
-     * incorporates elements of Phase-Fair locks (see Brandenburg &
-     * Anderson, especially http://www.cs.unc.edu/~bbb/diss/).  In
-     * particular, we use the phase-fair anti-barging rule: If an
-     * incoming reader arrives while read lock is held but there is a
-     * queued writer, this incoming reader is queued.  (This rule is
-     * responsible for some of the complexity of method acquireRead,
-     * but without it, the lock becomes highly unfair.) Method release
-     * does not (and sometimes cannot) itself wake up cowaiters. This
-     * is done by the primary thread, but helped by any other threads
-     * with nothing better to do in methods acquireRead and
-     * acquireWrite.
-     *
-     * These rules apply to threads actually queued. All tryLock forms
-     * opportunistically try to acquire locks regardless of preference
-     * rules, and so may "barge" their way in.  Randomized spinning is
-     * used in the acquire methods to reduce (increasingly expensive)
-     * context switching while also avoiding sustained memory
-     * thrashing among many threads.  We limit spins to the head of
-     * queue. If, upon wakening, a thread fails to obtain lock, and is
-     * still (or becomes) the first waiting thread (which indicates
-     * that some other thread barged and obtained lock), it escalates
-     * spins (up to MAX_HEAD_SPINS) to reduce the likelihood of
-     * continually losing to barging threads.
-     *
-     * Nearly all of these mechanics are carried out in methods
-     * acquireWrite and acquireRead, that, as typical of such code,
-     * sprawl out because actions and retries rely on consistent sets
-     * of locally cached reads.
-     *
-     * As noted in Boehm's paper (above), sequence validation (mainly
-     * method validate()) requires stricter ordering rules than apply
-     * to normal volatile reads (of "state").  To force orderings of
-     * reads before a validation and the validation itself in those
-     * cases where this is not already forced, we use acquireFence.
-     * Unlike in that paper, we allow writers to use plain writes.
-     * One would not expect reorderings of such writes with the lock
-     * acquisition CAS because there is a "control dependency", but it
-     * is theoretically possible, so we additionally add a
-     * storeStoreFence after lock acquisition CAS.
-     *
-     * ----------------------------------------------------------------
-     * Here's an informal proof that plain reads by _successful_
-     * readers see plain writes from preceding but not following
-     * writers (following Boehm and the C++ standard [atomics.fences]):
-     *
-     * Because of the total synchronization order of accesses to
-     * volatile long state containing the sequence number, writers and
-     * _successful_ readers can be globally sequenced.
-     *
-     * int x, y;
-     *
-     * Writer 1:
-     * inc sequence (odd - "locked")
-     * storeStoreFence();
-     * x = 1; y = 2;
-     * inc sequence (even - "unlocked")
-     *
-     * Successful Reader:
-     * read sequence (even)
-     * // must see writes from Writer 1 but not Writer 2
-     * r1 = x; r2 = y;
-     * acquireFence();
-     * read sequence (even - validated unchanged)
-     * // use r1 and r2
-     *
-     * Writer 2:
-     * inc sequence (odd - "locked")
-     * storeStoreFence();
-     * x = 3; y = 4;
-     * inc sequence (even - "unlocked")
-     *
-     * Visibility of writer 1's stores is normal - reader's initial
-     * read of state synchronizes with writer 1's final write to state.
-     * Lack of visibility of writer 2's plain writes is less obvious.
-     * If reader's read of x or y saw writer 2's write, then (assuming
-     * semantics of C++ fences) the storeStoreFence would "synchronize"
-     * with reader's acquireFence and reader's validation read must see
-     * writer 2's initial write to state and so validation must fail.
-     * But making this "proof" formal and rigorous is an open problem!
-     * ----------------------------------------------------------------
-     *
-     * The memory layout keeps lock state and queue pointers together
-     * (normally on the same cache line). This usually works well for
-     * read-mostly loads. In most other cases, the natural tendency of
-     * adaptive-spin CLH locks to reduce memory contention lessens
-     * motivation to further spread out contended locations, but might
-     * be subject to future improvements.
-     */
 
     private static final long serialVersionUID = -6001602636862214147L;
 
-    /** Number of processors, for spin control */
+    /** 处理器数量，用于自旋控制 */
     private static final int NCPU = Runtime.getRuntime().availableProcessors();
 
-    /** Maximum number of retries before enqueuing on acquisition; at least 1 */
+    /** 入队获取前的最大重试次数； 至少 1 */
     private static final int SPINS = (NCPU > 1) ? 1 << 6 : 1;
 
-    /** Maximum number of tries before blocking at head on acquisition */
+    /** 队列头结点自旋获取锁最大失败次数后再次进入队列 */
     private static final int HEAD_SPINS = (NCPU > 1) ? 1 << 10 : 1;
 
-    /** Maximum number of retries before re-blocking */
+    /** 重新阻塞前的最大重试次数 */
     private static final int MAX_HEAD_SPINS = (NCPU > 1) ? 1 << 16 : 1;
 
-    /** The period for yielding when waiting for overflow spinlock */
+    /** 等待溢出自旋锁时的生产周期 */
     private static final int OVERFLOW_YIELD_RATE = 7; // must be power 2 - 1
 
-    /** The number of bits to use for reader count before overflowing */
+    /** 溢出之前用于阅读器计数的位数 */
     private static final int LG_READERS = 7;
 
     // Values for lock state and stamp operations
@@ -375,17 +55,12 @@ public class StampedLock implements java.io.Serializable {
     private static final long ABITS = RBITS | WBIT;
     private static final long SBITS = ~RBITS; // note overlap with ABITS
 
-    /*
-     * 3 stamp modes can be distinguished by examining (m = stamp & ABITS):
-     * write mode: m == WBIT
-     * optimistic read mode: m == 0L (even when read lock is held)
-     * read mode: m > 0L && m <= RFULL (the stamp is a copy of state, but the
-     * read hold count in the stamp is unused other than to determine mode)
-     *
-     * This differs slightly from the encoding of state:
-     * (state & ABITS) == 0L indicates the lock is currently unlocked.
-     * (state & ABITS) == RBITS is a special transient value
-     * indicating spin-locked to manipulate reader bits overflow.
+    /**
+     * 通过检查（m = stamp & ABITS）可以区分3种标记模式：
+     * 写模式：m == WBIT 乐观读模式：m == 0L（即使持有读锁）
+     * 读模式：m > 0L && m <= RFULL （标记是状态的副本，但标记中的读取保持计数除了用于确定模式外未使用）。
+     * 这与状态的编码略有不同：(state & ABITS) == 0L 表示锁当前已解锁。
+     * (state & ABITS) == RBITS 是一个特殊的瞬态值，指示自旋锁定以操纵读取器位溢出。
      */
 
     /** Initial value for lock state; avoids failure value zero. */
